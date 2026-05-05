@@ -1,5 +1,6 @@
-import java.time.LocalDateTime;
+package com.example.demo.entity;
 
+import java.time.LocalDateTime;
 import lombok.Data;
 
 /**
