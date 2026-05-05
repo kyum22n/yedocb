@@ -9,23 +9,31 @@ import lombok.Data;
  * ===============================
  * 수정 이력
  * ===============================
- * 2026-05-02 | 규민 | 필드 추가
+ * 2026-05-02 | 규민 | 필드 수정
  */
 
 @Data
 public class Reservation {
-    // 예약ID
-    private Integer rId;
+    // 예약 ID
+    private Integer reservationId;
     // 예약자 ID
-    private String uId;
-    // 상담 항목
-    private String tName;
-    // 상담일자
-    private Date consultDate;
-    // 상담시간
-    private LocalDateTime consultTime;
+    private Integer memberId;
+    // 진료 항목 ID
+    private Integer treatmentId;
+    // 담당자 ID
+    private Integer adminId;
+    // 예약 일자
+    private LocalDate reservationDate;
+    // 예약 시간
+    private LocalDateTime reservationTime;
     // 예약 상태
-    private String status;
+    private String reservationStatus;
+    // 고객 메모
+    private String memberMemo;
+    // 담당자 메모
+    private String adminMemo;
+    // pms 연동 상태
+    private String pmsSyncStatus;
     // 생성일(추가)
     private LocalDateTime createdAt;
     // 수정일(추가)

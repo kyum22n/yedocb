@@ -3,7 +3,7 @@ import java.time.LocalDateTime;
 import lombok.Data;
 
 /**
- * 파일명: User.java
+ * 파일명: Member.java
  * 설명: 사용자 정보 관련 엔티티
  *
  * ===============================
@@ -13,19 +13,23 @@ import lombok.Data;
  */
 
 @Data
-public class User {
+public class Member {
     // 사용자 ID(추가)
-    private Integer uId;
+    private Integer memberId;
     // 로그인 아이디
-    private String uLoginId;
+    private String memberLoginId;
     // 로그인 패스워드
-    private String uPwd;
+    private String memberPassword;
     // 사용자 이메일
-    private String uEmail;
+    private String memberEmail;
     // 사용자 이름
-    private String uName;
+    private String memberName;
     // 사용자 전화번호
-    private String uPhone;
+    private String memberPhone;
+    // 사용자 생년월일
+    private LocalDate memberBirth;
+    // 사용자 성별
+    private String memberGender;
     // 생성일(추가)
     private LocalDateTime createdAt;
     // 수정일(추가)

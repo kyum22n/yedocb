@@ -9,21 +9,23 @@ import lombok.Data;
  * ===============================
  * 수정 이력
  * ===============================
- * 2026-05-02 | 규민 | 필드 추가 & 삭제
+ * 2026-05-02 | 규민 | 필드 수정
  */
 
 @Data
 public class Inquiry {
     // 문의 ID
-    private Integer qId;
+    private Integer inquiryId;
     // 문의자(사용자) ID
-    private Integer uId;
-    // 문의자 방문 여부
-    private Boolean visit;
+    private Integer memberId;
+    // 문의 유형
+    private String inquiryType;
+    // 문의 제목
+    private String title;
     // 문의 내용
-    private String qContent;
-    // 문의 상태
-    private String qStatus;
+    private String content;
+    // 문의 처리 상태
+    private String inquiryStatus;
     // 생성일
     private LocalDateTime createdAt;
     // 수정일(추가)

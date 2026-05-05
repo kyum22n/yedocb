@@ -15,17 +15,19 @@ import lombok.Data;
 @Data
 public class Admin {
     // 관리자 ID(추가)
-    private Integer aId;
+    private Integer adminId;
     // 관리자 로그인 ID
-    private String aLoginId;
+    private String adminLoginId;
     // 관리자 비밀번호
-    private String aPwd;
+    private String adminPassword;
+    // 관리자 이름
+    private String adminName;
     // 관리자 이메일
-    private String aEmail;
+    private String adminEmail;
     // 관리자 전화번호(추가)
-    private String aPhone;
+    private String adminPhone;
     // 관리자 권한 - 최고관리자/일반관리자
-    private String aRole;
+    private String adminRole;
     // 관리자 계정 생성자
     private String createdBy;
     // 생성일(추가)

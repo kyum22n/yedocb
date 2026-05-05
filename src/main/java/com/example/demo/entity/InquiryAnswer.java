@@ -15,13 +15,13 @@ import lombok.Data;
 @Data
 public class InquiryAnswer {
     // 답변 ID
-    private Integer qaId;
+    private Integer answerId;
     // 문의 ID
-    private Integer qId;
+    private Integer inquiryId;
     // 답변자(관리자) ID
-    private Integer aId;
+    private Integer adminId;
     // 답변 내용
-    private String qAnswer;
+    private String answerContent;
     // 생성일
     private LocalDateTime createdAt;
     // 수정일
