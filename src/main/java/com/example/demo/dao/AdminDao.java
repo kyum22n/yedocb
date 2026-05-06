@@ -26,7 +26,7 @@ public interface AdminDao {
 	public int insertAdmin(Admin admin);
     
 	// 관리자 정보 수정
-    public int updateAdmin(Admin admin);
+    public int updateAdmin(AdminUpdateRequestDto admin);
 	
 	// 관리자 삭제
 	public int deleteAdmin(Integer adminId);
