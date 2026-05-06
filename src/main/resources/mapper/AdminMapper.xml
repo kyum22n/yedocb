@@ -13,7 +13,7 @@
 
   <!-- 관리자 상세 조회 -->
   <select id="selectAdminById" resultType="com.example.demo.entity.Admin">
-    SELECT admin_id, admin_login_id, admin_name, admin_email, admin_phone, admin_role, created_by, created_at, updated_at
+    SELECT admin_id, admin_login_id, admin_password, admin_name, admin_email, admin_phone, admin_role, created_by, created_at, updated_at
     FROM admin
     WHERE admin_id = #{adminId}
   </select>
