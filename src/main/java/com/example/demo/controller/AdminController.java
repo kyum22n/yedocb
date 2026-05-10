@@ -64,11 +64,5 @@ public class AdminController {
     public int deleteAdmin(@PathVariable("adminId") Integer adminId) {
         return adminService.removeAdmin(adminId);
     }
-
-    // 관리자 비밀번호 변경
-    @PutMapping("/update-password")
-    public int updateAdminPassword(@RequestBody AdminPasswordUpdateRequestDto newPassword) {
-        return adminService.modifyAdminPassword(newPassword);   
-    }
     
 }

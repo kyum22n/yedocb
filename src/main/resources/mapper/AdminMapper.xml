@@ -55,19 +55,4 @@
     WHERE admin_login_id = #{adminLoginId}    
   </select>
 
-  <!-- 관리자 이메일로 관리자 아이디 찾기 -->
-  <select id="selectAdminIdByEmail" resultType="String">
-    SELECT admin_login_id
-    FROM admin
-    WHERE admin_email = #{adminEmail}
-  </select>
-
-  <!-- 관리자 비밀번호 변경 -->
-  <update id="updatePassword">
-    UPDATE admin
-    SET admin_password = #{adminPassword},
-        updated_at = NOW()
-    WHERE admin_id = #{adminId}
-  </update>
-
 </mapper>

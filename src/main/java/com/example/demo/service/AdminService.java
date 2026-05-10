@@ -86,29 +86,5 @@ public class AdminService {
         return adminDao.selectAdminByLoginId(adminLoginId);
     }
 
-    // 관리자 이메일로 관리자 아이디 찾기
-    // public String getAdminIdByEmail(String adminEmail) {
-    //     return adminDao.selectAdminIdByEmail(adminEmail);
-    // }
-
-    // 관리자 비밀번호 변경
-    public int modifyAdminPassword(AdminPasswordUpdateRequestDto newPassword) {
-        Admin admin = adminDao.selectAdminById(newPassword.getAdminId());
-
-        if(admin == null) {
-            throw new IllegalArgumentException("존재하지 않는 관리자입니다.");
-        }
-
-        // 현재 비밀번호 일치 여부 확인
-        if(!passwordEncoder.matches(newPassword.getCurrentPassword(), admin.getAdminPassword())) {
-            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
-        }
-
-        // 새 비밀번호 암호화
-        String encodePassword = passwordEncoder.encode(newPassword.getNewPassword());
-
-        return adminDao.updatePassword(newPassword.getAdminId(), encodePassword);
-    }
-
 
 }

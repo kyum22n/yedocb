@@ -38,9 +38,4 @@ public interface AdminDao {
     // 로그인 ID로 관리자 조회
     public Admin selectAdminByLoginId(String adminLoginId);
 
-	// 관리자 이메일로 관리자 아이디 찾기
-	public String selectAdminIdByEmail(String adminEmail);
-	
-	// 관리자 비밀번호 변경
-	public int updatePassword(@Param("adminId") Integer adminId, @Param("adminPassword") String adminPassword);
 }
