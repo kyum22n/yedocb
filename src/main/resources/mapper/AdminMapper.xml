@@ -33,11 +33,9 @@
   <!-- 관리자 정보 수정 -->
   <update id="updateAdmin" parameterType="com.example.demo.entity.Admin">
     UPDATE admin
-    SET admin_login_id = #{adminLoginId},
-        admin_name = #{adminName},
+    SET admin_name = #{adminName},
         admin_email = #{adminEmail},
         admin_phone = #{adminPhone},
-        admin_role = #{adminRole},
         updated_at = NOW()
     WHERE admin_id = #{adminId}
   </update>

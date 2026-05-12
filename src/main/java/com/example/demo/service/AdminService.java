@@ -7,6 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.example.demo.dao.AdminDao;
 import com.example.demo.entity.Admin;
 import com.example.demo.dto.request.admin.AdminUpdateRequestDto;
+import com.example.demo.dto.response.admin.AdminDetailResponseDto;
 import com.example.demo.dto.request.admin.AdminPasswordUpdateRequestDto;
 
 /**
@@ -34,8 +35,26 @@ public class AdminService {
     }
 
     // 관리자 상세 조회
-    public Admin getAdminById(Integer adminId) {
-        return adminDao.selectAdminById(adminId);
+    public AdminDetailResponseDto getAdminById(Integer adminId) {
+        
+        Admin admin = adminDao.selectAdminById(adminId);
+
+        if(admin == null) {
+            throw new IllegalArgumentException("존재하지 않는 관리자입니다.");
+        }
+
+        AdminDetailResponseDto response = new AdminDetailResponseDto();
+        response.setAdminId(admin.getAdminId());
+        response.setAdminLoginId(admin.getAdminLoginId());
+        response.setAdminName(admin.getAdminName());
+        response.setAdminEmail(admin.getAdminEmail());
+        response.setAdminPhone(admin.getAdminPhone());
+        response.setAdminRole(admin.getAdminRole());
+        response.setAdminCreatedAt(admin.getAdminCreatedAt());
+        response.setAdminCreatedBy(admin.getAdminCreatedBy());
+        response.setAdminUpdatedAt(admin.getAdminUpdatedAt());
+
+        return response;
     }
 
     // 관리자 등록
@@ -60,12 +79,18 @@ public class AdminService {
     }
 
     // 관리자 정보 수정
-    public int modifyAdmin(AdminUpdateRequestDto admin) {
-        Admin existingAdmin = adminDao.selectAdminById(admin.getAdminId());
+    public int modifyAdmin(AdminUpdateRequestDto request) {
+        Admin existingAdmin = adminDao.selectAdminById(request.getAdminId());
 
         if(existingAdmin == null) {
             throw new IllegalArgumentException("존재하지 않는 관리자입니다.");
         }
+
+        Admin admin = new Admin();
+        admin.setAdminId(request.getAdminId());
+        admin.setAdminName(request.getAdminName());
+        admin.setAdminEmail(request.getAdminEmail());
+        admin.setAdminPhone(request.getAdminPhone());
 
         return adminDao.updateAdmin(admin);
     }

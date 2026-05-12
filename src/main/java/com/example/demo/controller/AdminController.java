@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,6 +15,7 @@ import java.util.List;
 
 import com.example.demo.dto.request.admin.AdminPasswordUpdateRequestDto;
 import com.example.demo.dto.request.admin.AdminUpdateRequestDto;
+import com.example.demo.dto.response.admin.AdminDetailResponseDto;
 import com.example.demo.entity.Admin;
 import com.example.demo.service.AdminService;
 
@@ -37,32 +39,32 @@ public class AdminController {
 
     // 관리자 목록 조회
     @GetMapping("/list")
-    public List<Admin> getAllAdmins() {
-        return adminService.getAllAdmins();
+    public ResponseEntity<List<Admin>> getAllAdmins() {
+        return ResponseEntity.ok(adminService.getAllAdmins());
     }
 
     // 관리자 상세 조회
     @GetMapping("/detail")
-    public Admin getAdminDetail(@RequestParam("adminId") Integer adminId) {
-        return adminService.getAdminById(adminId);
+    public ResponseEntity<AdminDetailResponseDto> getAdminDetail(@RequestParam("adminId") Integer adminId) {
+        return ResponseEntity.ok(adminService.getAdminById(adminId));
     }
     
     // 관리자 등록
     @PostMapping("/register")
-    public int registerAdmin(@RequestBody Admin admin) {
-        return adminService.createAdmin(admin);
+    public ResponseEntity<Integer> registerAdmin(@RequestBody Admin admin) {
+        return ResponseEntity.ok(adminService.createAdmin(admin));
     }
 
     // 관리자 정보 수정
     @PutMapping("/update")
-    public int updateAdmin(@RequestBody AdminUpdateRequestDto admin) {
-        return adminService.modifyAdmin(admin);
+    public ResponseEntity<Integer> updateAdmin(@RequestBody AdminUpdateRequestDto admin) {
+        return ResponseEntity.ok(adminService.modifyAdmin(admin));
     }
 
     // 관리자 삭제
     @DeleteMapping("/delete/{adminId}")
-    public int deleteAdmin(@PathVariable("adminId") Integer adminId) {
-        return adminService.removeAdmin(adminId);
+    public ResponseEntity<Integer> deleteAdmin(@PathVariable("adminId") Integer adminId) {
+        return ResponseEntity.ok(adminService.removeAdmin(adminId));
     }
     
 }

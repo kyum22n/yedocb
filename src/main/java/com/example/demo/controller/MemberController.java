@@ -1,10 +1,13 @@
 package com.example.demo.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.example.demo.dto.request.member.MemberMypageUpdateRequestDto;
+import com.example.demo.dto.response.member.MemberMypageResponseDto;
 
 import com.example.demo.dto.request.member.MemberCreateRequestDto;
 import com.example.demo.service.MemberService;
@@ -28,26 +31,26 @@ public class MemberController {
 
     // 회원가입
     @PostMapping("/register")
-    public int registerMember(@RequestBody MemberCreateRequestDto request) {
-        return memberService.createMember(request);
+    public ResponseEntity<Integer> registerMember(@RequestBody MemberCreateRequestDto request) {
+        return ResponseEntity.ok(memberService.createMember(request));
     }
 
     // 마이페이지 조회
     @GetMapping("/mypage")
-    public MemberInfoResponseDto getMyPage(@RequestParam("memberId") Integer memberId) {
-        return memberService.getMemberById(memberId);
+    public ResponseEntity<MemberMypageResponseDto> getMyPage(@RequestParam("memberId") Integer memberId) {
+        return ResponseEntity.ok(memberService.getMemberById(memberId));
     }
 
     // 마이페이지 수정
     @PutMapping("/mypage/update")
-    public int updateMyPage(@RequestBody MemberMypageUpdateRequestDto request) {
-        return memberService.modifyMember(request);
+    public ResponseEntity<Integer> updateMyPage(@RequestBody MemberMypageUpdateRequestDto request) {
+        return ResponseEntity.ok(memberService.modifyMember(request));
     }
 
     // 회원 탈퇴
     @DeleteMapping("/withdraw")
-    public int withdrawMember(@RequestParam("memberId") Integer memberId) {
-        return memberService.removeMember(memberId);
+    public ResponseEntity<Integer> withdrawMember(@RequestParam("memberId") Integer memberId) {
+        return ResponseEntity.ok(memberService.removeMember(memberId));
     }
 
 }
