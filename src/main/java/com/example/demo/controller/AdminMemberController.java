@@ -1,8 +1,18 @@
 package com.example.demo.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import java.util.List;
+
+import com.example.demo.entity.Member;
+import com.example.demo.service.AdminMemberService;
 
 /**
  * 파일명: AdminMemberController.java
@@ -23,25 +33,25 @@ public class AdminMemberController {
 
     // 관리자 회원 등록
     @PostMapping("/register")
-    public int registerAdminMember(@RequestBody MemberCreateRequestDto request) {
-        return adminMemberService.createAdminMember(request);
+    public ResponseEntity<Integer> registerAdminMember(@RequestBody MemberCreateRequestDto request) {
+        return ResponseEntity.ok(adminMemberService.createAdminMember(request));
     }
 
     // 관리자 회원 목록 조회
     @GetMapping("/list")
-    public List<AdminMemberListResponseDto> getAllMembers() {
-        return adminMemberService.getAllMembers();
+    public ResponseEntity<List<Member>> getAllMembers() {
+        return ResponseEntity.ok(adminMemberService.getAllMembers());
     }
 
     // 관리자 회원 상세 조회
     @GetMapping("/detail")
-    public AdminMemberDetailResponseDto getMemberDetail(@RequestParam("memberId") Integer memberId) {
-        return adminMemberService.getMemberById(memberId);
+    public ResponseEntity<AdminMemberDetailResponseDto> getMemberDetail(@RequestParam("memberId") Integer memberId) {
+        return ResponseEntity.ok(adminMemberService.getAdminMemberById(memberId));
     }
 
     // 관리자 회원 삭제
     @DeleteMapping("/delete")
-    public int deleteMember(@RequestParam("memberId") Integer memberId) {
-        return adminMemberService.removeMember(memberId);
+    public ResponseEntity<Integer> deleteMember(@RequestParam("memberId") Integer memberId) {
+        return ResponseEntity.ok(adminMemberService.removeAdminMember(memberId));
     }
 }
