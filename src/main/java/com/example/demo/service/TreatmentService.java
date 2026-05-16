@@ -36,6 +36,7 @@ public class TreatmentService {
             response.setTreatmentId(treatment.getTreatmentId());
             response.setTreatmentName(treatment.getTreatmentName());
             response.setDescription(treatment.getDescription());
+            response.setIsReservable(treatment.getIsReservable());
             
             listResponse.add(response);
         }
@@ -53,7 +54,8 @@ public class TreatmentService {
             response.setTreatmentId(treatment.getTreatmentId());
             response.setTreatmentName(treatment.getTreatmentName());
             response.setDescription(treatment.getDescription());
-
+            response.setIsReservable(treatment.getIsReservable());
+            
             listResponse.add(response);
         }
 
@@ -73,7 +75,8 @@ public class TreatmentService {
         response.setTreatmentId(treatment.getTreatmentId());
         response.setTreatmentName(treatment.getTreatmentName());
         response.setDescription(treatment.getDescription());
-
+        response.setIsReservable(treatment.getIsReservable());
+        
         return response;
     }
 }

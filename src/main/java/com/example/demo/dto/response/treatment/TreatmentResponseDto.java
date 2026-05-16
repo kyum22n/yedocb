@@ -20,4 +20,6 @@ public class TreatmentResponseDto {
     private String treatmentName;
     // 설명
     private String description;
+    // 예약 가능 여부
+    private Boolean isReservable;
 }

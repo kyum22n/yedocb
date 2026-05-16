@@ -3,8 +3,12 @@ package com.example.demo.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.ArrayList;
+
+import com.example.demo.dao.AdminTreatmentCategoryDao;
 import com.example.demo.dao.TreatmentCategoryDao;
-import com.example.demo.dto.CategoryResponseDto;
+import com.example.demo.dto.response.treatment.CategoryResponseDto;
 import com.example.demo.dto.request.treatment.CategoryCreateRequestDto;
 import com.example.demo.dto.request.treatment.CategoryUpdateRequestDto;
 import com.example.demo.entity.TreatmentCategory;
@@ -54,7 +58,7 @@ public class AdminTreatmentCategoryService {
             throw new IllegalArgumentException("존재하지 않는 카테고리입니다.");
         }
 
-        com.example.demo.dto.response.treatment.CategoryResponseDto response = new CategoryResponseDto();
+        CategoryResponseDto response = new CategoryResponseDto();
         response.setCategoryId(category.getCategoryId());
         response.setCategoryName(category.getCategoryName());
         response.setIsVisible(category.getIsVisible());

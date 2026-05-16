@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import com.example.demo.dao.AdminTreatmentDao;
 import com.example.demo.dto.request.treatment.TreatmentUpdateRequestDto;
 import com.example.demo.dto.response.treatment.AdminTreatmentResponseDto;
-import com.example.demo.dto.request.treatment.AdminTreatmentCreateRequestDto;
+import com.example.demo.dto.request.treatment.TreatmentCreateRequestDto;
 import com.example.demo.entity.Treatment;
 
 /**
@@ -102,7 +102,7 @@ public class AdminTreatmentService {
     }
 
     // 진료 항목 추가
-    public int createTreatment(AdminTreatmentCreateRequestDto request) {
+    public int createTreatment(TreatmentCreateRequestDto request) {
 
         Treatment treatment = new Treatment();
 
