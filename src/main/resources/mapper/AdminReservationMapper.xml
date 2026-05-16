@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.dao.AdminReservationDao">
+
+    <!--예약 등록-->
+    <insert id="insertReservation"
+        parameterType="com.example.demo.entity.Reservation"
+        useGeneratedKeys="true"
+        keyProperty="reservationId"
+    > 
+        INSERT INTO reservation 
+            (member_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at) 
+        VALUES 
+            (#{memberId}, #{treatmentId}, #{adminId}, #{reservationDate}, #{reservationTime}, COALESCE(#{reservationStatus}, 'PENDING'), #{memberMemo}, #{adminMemo}, COALESCE(#{pmsSyncStatus}, 'PENDING'), NOW(), NOW()) 
+    </insert>
+
+    <!--예약 목록 조회-->
+    <select id="selectAllReservations" resultType="com.example.demo.entity.Reservation">
+        SELECT reservation_id, member_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
+        FROM reservation
+        ORDER BY reservation_id
+    </select>
+
+    <!--회원별 예약 목록 조회-->
+    <select id="selectReservationsByMemberId" resultType="com.example.demo.entity.Reservation">
+        SELECT reservation_id, member_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
+        FROM reservation
+        WHERE member_id = #{memberId}
+        ORDER BY reservation_id
+    </select>
+
+    <!--담당자별 예약 목록 조회-->
+    <select id="selectReservationsByAdminId" resultType="com.example.demo.entity.Reservation">
+        SELECT reservation_id, member_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
+        FROM reservation
+        WHERE admin_id = #{adminId}
+        ORDER BY reservation_id
+    </select>
+    
+    <!--예약 상태별 목록 조회-->
+    <select id="selectReservationsByStatus" resultType="com.example.demo.entity.Reservation">
+        SELECT reservation_id, member_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
+        FROM reservation
+        WHERE reservation_status = #{reservationStatus}
+        ORDER BY reservation_id
+    </select>
+
+    <!--PMS 연동 상태별 목록 조회-->
+    <select id="selectReservationsByPmsSyncStatus" resultType="com.example.demo.entity.Reservation">
+        SELECT reservation_id, member_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
+        FROM reservation
+        WHERE pms_sync_status = #{pmsSyncStatus}
+        ORDER BY reservation_id
+    </select>
+
+    <!--예약 상세 조회-->
+    <select id="selectReservationById" resultType="com.example.demo.entity.Reservation">
+        SELECT reservation_id, member_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
+        FROM reservation
+        WHERE reservation_id = #{reservationId}
+    </select>
+
+    <!--예약 수정-->
+    <update id="updateReservation" parameterType="com.example.demo.entity.Reservation">
+        UPDATE reservation
+        SET treatment_id = #{treatmentId},
+            admin_id = #{adminId},
+            reservation_date = #{reservationDate},
+            reservation_time = #{reservationTime},
+            reservation_status = #{reservationStatus},
+            member_memo = #{memberMemo},
+            admin_memo = #{adminMemo},
+            updated_at = NOW()
+        WHERE reservation_id = #{reservationId}
+    </update>
+
+    <!--예약 상태 수정-->
+    <update id="updateReservationStatus" parameterType="com.example.demo.entity.Reservation">
+        UPDATE reservation
+        SET admin_id = #{adminId},
+            reservation_status = #{reservationStatus},
+            admin_memo = #{adminMemo},
+            updated_at = NOW()
+        WHERE reservation_id = #{reservationId}
+    </update>
+
+    <!--PMS 연동 상태 수정-->
+    <update id="updatePmsSyncStatus" parameterType="com.example.demo.entity.Reservation">
+        UPDATE reservation
+        SET pms_sync_status = #{pmsSyncStatus},
+            updated_at = NOW()
+        WHERE reservation_id = #{reservationId}
+    </update>
+
+    <!--예약 삭제-->
+    <delete id="deleteReservation">
+        DELETE FROM reservation
+        WHERE reservation_id = #{reservationId}
+    </delete>
+
+</mapper>

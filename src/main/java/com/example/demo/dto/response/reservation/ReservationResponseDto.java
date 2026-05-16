@@ -1,30 +1,29 @@
-package com.example.demo.entity;
+package com.example.demo.dto.response.reservation;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+
 import lombok.Data;
 
 /**
- * 파일명: Reservation.java
- * 설명: 예약 정보 관련 엔티티
+ * 파일명: ReservationResponseDto.java
+ * 설명: 사용자 예약 응답 DTO
  *
  * ===============================
  * 수정 이력
  * ===============================
- * 2026-05-02 | 규민 | 필드 수정
+ * 2026-05-16 | 규민 | 클래스 생성
  */
 
 @Data
-public class Reservation {
+public class ReservationResponseDto {
     // 예약 ID
     private Integer reservationId;
     // 예약자 ID
     private Integer memberId;
     // 진료 항목 ID
     private Integer treatmentId;
-    // 담당자 ID
-    private Integer adminId;
     // 예약 일자
     private LocalDate reservationDate;
     // 예약 시간
@@ -33,12 +32,8 @@ public class Reservation {
     private String reservationStatus;
     // 고객 메모
     private String memberMemo;
-    // 담당자 메모
-    private String adminMemo;
-    // pms 연동 상태
-    private String pmsSyncStatus;
-    // 생성일(추가)
+    // 생성일
     private LocalDateTime createdAt;
-    // 수정일(추가)
+    // 수정일
     private LocalDateTime updatedAt;
 }
