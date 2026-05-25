@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.dao.AdminStatisticsDao">
+
+    <!--예약 통계 조회-->
+    <select id="selectReservationStatistics"
+            parameterType="com.example.demo.dto.request.statistics.StatisticsSearchRequestDto"
+            resultType="com.example.demo.dto.response.statistics.ReservationStatisticsResponseDto">
+        SELECT
+            COUNT(*) AS total_reservation_count,
+            SUM(CASE WHEN reservation_status = 'PENDING' THEN 1 ELSE 0 END) AS pending_count,
+            SUM(CASE WHEN reservation_status = 'CONFIRMED' THEN 1 ELSE 0 END) AS confirmed_count,
+            SUM(CASE WHEN reservation_status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_count,
+            SUM(CASE WHEN reservation_status = 'CANCELED' THEN 1 ELSE 0 END) AS canceled_count,
+            SUM(CASE WHEN reservation_status = 'NO_SHOW' THEN 1 ELSE 0 END) AS no_show_count,
+            CASE
+                WHEN COUNT(*) = 0 THEN 0
+                ELSE ROUND((SUM(CASE WHEN reservation_status = 'NO_SHOW' THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)) * 100, 2)
+            END AS no_show_rate
+        FROM reservation
+        WHERE 1 = 1
+        <if test="startDate != null">
+            AND reservation_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND reservation_date &lt;= #{endDate}
+        </if>
+    </select>
+
+    <!--상담 통계 조회-->
+    <select id="selectConsultationStatistics"
+            parameterType="com.example.demo.dto.request.statistics.StatisticsSearchRequestDto"
+            resultType="com.example.demo.dto.response.statistics.ConsultationStatisticsResponseDto">
+        SELECT
+            COUNT(*) AS total_consultation_count,
+            SUM(CASE WHEN consultation_status = 'RECEIVED' THEN 1 ELSE 0 END) AS received_count,
+            SUM(CASE WHEN consultation_status = 'SCHEDULED' THEN 1 ELSE 0 END) AS scheduled_count,
+            SUM(CASE WHEN consultation_status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_count,
+            SUM(CASE WHEN consultation_status = 'CONVERTED' THEN 1 ELSE 0 END) AS converted_count,
+            SUM(CASE WHEN consultation_status = 'CANCELED' THEN 1 ELSE 0 END) AS canceled_count,
+            CASE
+                WHEN COUNT(*) = 0 THEN 0
+                ELSE ROUND((SUM(CASE WHEN consultation_status = 'CONVERTED' THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)) * 100, 2)
+            END AS conversion_rate
+        FROM consultation
+        WHERE 1 = 1
+        <if test="startDate != null">
+            AND created_at::DATE &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND created_at::DATE &lt;= #{endDate}
+        </if>
+    </select>
+
+    <!--문의 통계 조회-->
+    <select id="selectInquiryStatistics"
+            parameterType="com.example.demo.dto.request.statistics.StatisticsSearchRequestDto"
+            resultType="com.example.demo.dto.response.statistics.InquiryStatisticsResponseDto">
+        SELECT
+            COUNT(*) AS total_inquiry_count,
+            SUM(CASE WHEN inquiry_status = 'WAITING' THEN 1 ELSE 0 END) AS waiting_count,
+            SUM(CASE WHEN inquiry_status = 'ANSWERED' THEN 1 ELSE 0 END) AS answered_count
+        FROM inquiry
+        WHERE 1 = 1
+        <if test="startDate != null">
+            AND created_at::DATE &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND created_at::DATE &lt;= #{endDate}
+        </if>
+    </select>
+
+    <!--인기 진료 항목 통계 조회-->
+    <select id="selectTreatmentStatistics"
+            parameterType="com.example.demo.dto.request.statistics.StatisticsSearchRequestDto"
+            resultType="com.example.demo.dto.response.statistics.TreatmentStatisticsResponseDto">
+        SELECT
+            t.treatment_id,
+            t.treatment_name,
+            COUNT(r.reservation_id) AS reservation_count
+        FROM treatment t
+        LEFT JOIN reservation r ON t.treatment_id = r.treatment_id
+        <where>
+            <if test="startDate != null">
+                r.reservation_date &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                <if test="startDate != null">AND</if>
+                r.reservation_date &lt;= #{endDate}
+            </if>
+        </where>
+        GROUP BY t.treatment_id, t.treatment_name
+        ORDER BY reservation_count DESC, t.treatment_id
+    </select>
+
+</mapper>
