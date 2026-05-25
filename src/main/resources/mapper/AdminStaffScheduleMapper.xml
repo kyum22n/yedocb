@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.dao.AdminStaffScheduleDao">
+
+    <!--직원 일정 등록-->
+    <insert id="insertStaffSchedule"
+            parameterType="com.example.demo.entity.StaffSchedule"
+            useGeneratedKeys="true"
+            keyProperty="scheduleId">
+        INSERT INTO staff_schedule
+            (admin_id, schedule_date, schedule_type, memo, created_at, updated_at)
+        VALUES
+            (#{adminId}, #{scheduleDate}, #{scheduleType}, #{memo}, NOW(), NOW())
+    </insert>
+
+    <!--직원 일정 목록 조회-->
+    <select id="selectAllStaffSchedules" resultType="com.example.demo.entity.StaffSchedule">
+        SELECT schedule_id, admin_id, schedule_date, schedule_type, memo, created_at, updated_at
+        FROM staff_schedule
+        ORDER BY schedule_date, schedule_id
+    </select>
+
+    <!--관리자별 직원 일정 목록 조회-->
+    <select id="selectStaffSchedulesByAdminId" resultType="com.example.demo.entity.StaffSchedule">
+        SELECT schedule_id, admin_id, schedule_date, schedule_type, memo, created_at, updated_at
+        FROM staff_schedule
+        WHERE admin_id = #{adminId}
+        ORDER BY schedule_date, schedule_id
+    </select>
+
+    <!--날짜별 직원 일정 목록 조회-->
+    <select id="selectStaffSchedulesByDate" resultType="com.example.demo.entity.StaffSchedule">
+        SELECT schedule_id, admin_id, schedule_date, schedule_type, memo, created_at, updated_at
+        FROM staff_schedule
+        WHERE schedule_date = #{scheduleDate}
+        ORDER BY schedule_id
+    </select>
+
+    <!--일정 유형별 직원 일정 목록 조회-->
+    <select id="selectStaffSchedulesByType" resultType="com.example.demo.entity.StaffSchedule">
+        SELECT schedule_id, admin_id, schedule_date, schedule_type, memo, created_at, updated_at
+        FROM staff_schedule
+        WHERE schedule_type = #{scheduleType}
+        ORDER BY schedule_date, schedule_id
+    </select>
+
+    <!--직원 일정 상세 조회-->
+    <select id="selectStaffScheduleById" resultType="com.example.demo.entity.StaffSchedule">
+        SELECT schedule_id, admin_id, schedule_date, schedule_type, memo, created_at, updated_at
+        FROM staff_schedule
+        WHERE schedule_id = #{scheduleId}
+    </select>
+
+    <!--직원 일정 수정-->
+    <update id="updateStaffSchedule" parameterType="com.example.demo.entity.StaffSchedule">
+        UPDATE staff_schedule
+        SET admin_id = #{adminId},
+            schedule_date = #{scheduleDate},
+            schedule_type = #{scheduleType},
+            memo = #{memo},
+            updated_at = NOW()
+        WHERE schedule_id = #{scheduleId}
+    </update>
+
+    <!--직원 일정 삭제-->
+    <delete id="deleteStaffSchedule">
+        DELETE FROM staff_schedule
+        WHERE schedule_id = #{scheduleId}
+    </delete>
+
+</mapper>
