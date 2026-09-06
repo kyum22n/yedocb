@@ -89,3 +89,71 @@ CREATE TABLE IF NOT EXISTS inquiry_answer (
     created_at      TIMESTAMP       NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMP       NOT NULL DEFAULT NOW()
 );
+
+-- =====================================================================
+-- Phase 2 도메인(Consultation, Treatment/TreatmentCategory, StaffSchedule, Review)
+-- =====================================================================
+-- 2026-09-06 | 리팩토링 | Phase 2 스키마 추가 (기존 테이블 정의는 변경하지 않음, 추가만 함)
+-- =====================================================================
+
+-- 진료항목 카테고리 (TreatmentCategory.java 기준)
+CREATE TABLE IF NOT EXISTS treatment_category (
+    category_id     SERIAL          PRIMARY KEY,
+    category_name   VARCHAR(100)    NOT NULL,
+    is_visible      BOOLEAN         NOT NULL DEFAULT TRUE,
+    created_at      TIMESTAMP       NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMP       NOT NULL DEFAULT NOW()
+);
+
+-- 진료항목 (Treatment.java 기준, category_id -> treatment_category.category_id 참조)
+CREATE TABLE IF NOT EXISTS treatment (
+    treatment_id    SERIAL          PRIMARY KEY,
+    category_id     INTEGER         REFERENCES treatment_category(category_id),
+    treatment_name  VARCHAR(200)    NOT NULL,
+    description     TEXT,
+    is_reservable   BOOLEAN         NOT NULL DEFAULT TRUE,
+    is_visible      BOOLEAN         NOT NULL DEFAULT TRUE,
+    created_at      TIMESTAMP       NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMP       NOT NULL DEFAULT NOW()
+);
+
+-- 상담 (Consultation.java 기준, u_id -> users.u_id 참조)
+CREATE TABLE IF NOT EXISTS consultation (
+    consultation_id     SERIAL          PRIMARY KEY,
+    u_id                VARCHAR(20)     NOT NULL REFERENCES users(u_id),
+    reservation_id      INTEGER         REFERENCES reservation(reservation_id),
+    treatment_id        INTEGER         REFERENCES treatment(treatment_id),
+    admin_id            INTEGER,
+    consultation_status VARCHAR(20)     NOT NULL DEFAULT 'RECEIVED',
+    consultation_memo   TEXT,
+    preferred_date      DATE,
+    preferred_time      TIME,
+    created_at          TIMESTAMP       NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMP       NOT NULL DEFAULT NOW()
+);
+
+-- 직원 근무 일정 (StaffSchedule.java 기준)
+CREATE TABLE IF NOT EXISTS staff_schedule (
+    schedule_id     SERIAL          PRIMARY KEY,
+    admin_id        INTEGER         NOT NULL,
+    schedule_date   DATE            NOT NULL,
+    schedule_type   VARCHAR(20)     NOT NULL,
+    memo            TEXT,
+    created_at      TIMESTAMP       NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMP       NOT NULL DEFAULT NOW()
+);
+
+-- 리뷰(후기) (Review.java 기준, treatment_id -> treatment.treatment_id, user_id -> users.u_id 참조)
+CREATE TABLE IF NOT EXISTS review (
+    review_id       SERIAL          PRIMARY KEY,
+    treatment_id    INTEGER         REFERENCES treatment(treatment_id),
+    user_id         VARCHAR(20)     NOT NULL REFERENCES users(u_id),
+    title           VARCHAR(200)    NOT NULL,
+    content         TEXT            NOT NULL,
+    image_url       VARCHAR(500),
+    hash_tag        VARCHAR(200),
+    hits            INTEGER         NOT NULL DEFAULT 0,
+    is_hidden       BOOLEAN         NOT NULL DEFAULT FALSE,
+    created_at      TIMESTAMP       NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMP       NOT NULL DEFAULT NOW()
+);
