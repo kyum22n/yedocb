@@ -13,11 +13,14 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
+import com.example.demo.dto.request.admin.AdminCreateRequestDto;
 import com.example.demo.dto.request.admin.AdminPasswordUpdateRequestDto;
 import com.example.demo.dto.request.admin.AdminUpdateRequestDto;
 import com.example.demo.dto.response.admin.AdminDetailResponseDto;
-import com.example.demo.entity.Admin;
+import com.example.demo.dto.response.admin.AdminListResponseDto;
 import com.example.demo.service.AdminService;
+
+import jakarta.validation.Valid;
 
 
 /**
@@ -37,9 +40,9 @@ public class AdminController {
     @Autowired
     private AdminService adminService;
 
-    // 관리자 목록 조회
+    // 관리자 목록 조회 (비밀번호 해시가 포함되지 않는 DTO 리스트로 반환)
     @GetMapping("/list")
-    public ResponseEntity<List<Admin>> getAllAdmins() {
+    public ResponseEntity<List<AdminListResponseDto>> getAllAdmins() {
         return ResponseEntity.ok(adminService.getAllAdmins());
     }
 
@@ -48,16 +51,16 @@ public class AdminController {
     public ResponseEntity<AdminDetailResponseDto> getAdminDetail(@RequestParam("adminId") Integer adminId) {
         return ResponseEntity.ok(adminService.getAdminById(adminId));
     }
-    
+
     // 관리자 등록
     @PostMapping("/register")
-    public ResponseEntity<Integer> registerAdmin(@RequestBody Admin admin) {
-        return ResponseEntity.ok(adminService.createAdmin(admin));
+    public ResponseEntity<Integer> registerAdmin(@Valid @RequestBody AdminCreateRequestDto request) {
+        return ResponseEntity.ok(adminService.createAdmin(request));
     }
 
     // 관리자 정보 수정
     @PutMapping("/update")
-    public ResponseEntity<Integer> updateAdmin(@RequestBody AdminUpdateRequestDto admin) {
+    public ResponseEntity<Integer> updateAdmin(@Valid @RequestBody AdminUpdateRequestDto admin) {
         return ResponseEntity.ok(adminService.modifyAdmin(admin));
     }
 

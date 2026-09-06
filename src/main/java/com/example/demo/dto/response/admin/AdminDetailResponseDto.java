@@ -2,6 +2,8 @@ package com.example.demo.dto.response.admin;
 
 import java.time.LocalDateTime;
 
+import com.example.demo.entity.Admin;
+
 import lombok.Data;
 
 /**
@@ -12,6 +14,7 @@ import lombok.Data;
  * 수정 이력
  * ===============================
  * 2026-05-02 | 규민 | DTO 추가
+ * 2026-09-06 | 리팩토링 | from(Admin) 정적 팩토리 추가
  */
 
 @Data
@@ -34,4 +37,18 @@ public class AdminDetailResponseDto {
     private LocalDateTime createdAt;
     // 수정일
     private LocalDateTime updatedAt;
+
+    public static AdminDetailResponseDto from(Admin admin) {
+        AdminDetailResponseDto dto = new AdminDetailResponseDto();
+        dto.setAdminId(admin.getAdminId());
+        dto.setAdminLoginId(admin.getAdminLoginId());
+        dto.setAdminName(admin.getAdminName());
+        dto.setAdminEmail(admin.getAdminEmail());
+        dto.setAdminPhone(admin.getAdminPhone());
+        dto.setAdminRole(admin.getAdminRole());
+        dto.setCreatedBy(admin.getCreatedBy());
+        dto.setCreatedAt(admin.getCreatedAt());
+        dto.setUpdatedAt(admin.getUpdatedAt());
+        return dto;
+    }
 }
