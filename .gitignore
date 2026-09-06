@@ -35,3 +35,8 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### 로그 / JVM 크래시 덤프 ###
+/logs/
+hs_err_pid*.log
+replay_pid*.log
