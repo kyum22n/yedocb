@@ -1,6 +1,9 @@
-# Phase 1 리팩토링 로그
+# 백엔드 리팩토링 로그 (Phase 1~3)
 
 대상 리포지토리: `C:\kyum\project\yedocb` (package `com.example.demo`)
+
+# Phase 1
+
 작업 범위: Admin, User(구 Member), Reservation, NoticeEvent(Notice), Inquiry 도메인 + Reservation/Consultation FK 타입 정리 + 전역 예외 처리 + schema.sql + 단위 테스트
 
 ---
@@ -286,3 +289,78 @@ Mockito(`@Mock`/`@InjectMocks`, `MockitoExtension`)만 사용하고 실제 DB에
 Phase 2 세션이 보류한 판단: `ReviewController`의 GET 3종(`/reviews/all`, `/reviews/treatment`, `/reviews/{reviewId}`)을 `Treatment`/`TreatmentCategory`처럼 로그인 없이도 볼 수 있게 할지 여부. `SecurityPaths.PUBLIC_GET_PATTERNS`에 `"/reviews/**"`를 추가해 GET 요청만 permitAll로 열었다(`POST /reviews/register`, `PUT /reviews/update`, `DELETE /reviews/delete`는 계속 인증 필요 — HTTP 메소드 단위로 permitAll을 걸었기 때문에 쓰기 작업은 영향 없음). 이유: 리뷰는 예약 전 탐색 단계에서 보여지는 마케팅성 콘텐츠(진료항목과 동일한 성격)이며, 계획 문서의 "리뷰: 작성/조회" 사용자 기능 중 "조회"에는 별도 로그인 요구가 명시되어 있지 않다.
 
 또한 통합 과정에서 `SecurityConfig`의 기존 규칙이 `/api/admin/**`만 관리자 권한으로 보호하고 있어, 접두사 없는 기존 경로(`/admin/reservations`, `/admin/staff-schedules` 등)는 로그인만 하면(관리자 권한 없이도) 접근 가능했던 보안 공백을 발견해 `.requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPERADMIN")` 규칙을 추가로 반영했다.
+
+---
+
+# Phase 3 리팩토링 로그
+
+작업 범위: `application.properties` local/prod 프로파일 분리, `logback.xml` 정리, 커밋된 `logs/` 디렉터리 정리
+
+## 1. application.properties 프로파일 분리
+
+기존 단일 `application.properties`(DB 접속정보 포함)를 3개 파일로 분리했다.
+
+- `application.properties` (공통): 앱 이름, `spring.profiles.active=${SPRING_PROFILES_ACTIVE:local}`(미지정 시 로컬 자동 활성화), 서버 포트(`${PORT:8080}` — Render 등 PaaS의 PORT 환경변수 대응), MyBatis 설정, schema.sql 초기화 설정, JWT/CORS/OAuth 설정(모두 기존처럼 `${ENV_VAR:기본값}` 형태 유지 — 로컬에서는 기본값으로 즉시 동작하고, 배포 환경에서는 환경변수로 재정의됨)
+- `application-local.properties` (신규): 로컬 PostgreSQL 접속정보(`localhost:5432/yedocb`, `postgres/postgres` — 실제 운영값이 아니므로 커밋 가능), 로깅 레벨 DEBUG
+- `application-prod.properties` (신규): DB 접속정보를 `${DB_URL}`/`${DB_USERNAME}`/`${DB_PASSWORD}`로만 작성(기본값 없음 — 값이 없으면 기동 자체가 실패하도록 의도적으로 설계, 운영에서 값 누락을 조용히 넘기지 않기 위함). 로깅 레벨 INFO/WARN.
+
+## 2. logback-spring.xml 신규 작성
+
+기존 A(`com.example.demo`)에는 logback 설정 파일 자체가 없었다(순수 Spring Boot 기본 콘솔 로깅). B(`com.example.yedocb`, 참고용)의 `logback.xml`에는 `FILE_NAME = "D:\\logs\\application.log"`처럼 절대경로 Windows 전용 하드코딩이 있었고, 로컬/운영 구분 없이 항상 콘솔+롤링파일 양쪽에 기록했다.
+
+A에 새로 작성한 `logback-spring.xml`은 이 문제를 처음부터 배제하는 방식으로 설계했다:
+- `local` 프로파일: 콘솔 + 상대경로(`./logs/application.log`, 프로젝트 루트 기준) 롤링 파일. 절대경로/OS 종속 경로 없음.
+- `prod` 프로파일: 콘솔(STDOUT) 전용, 파일 로깅 없음 — Render 같은 컨테이너 환경은 파일시스템이 재배포/재시작 시 초기화되므로 파일 로깅이 무의미하기 때문.
+
+## 3. 커밋된 logs/ 디렉터리 정리
+
+`git ls-files`로 확인한 결과 A 저장소에는 커밋된 `logs/` 디렉터리가 애초에 없었다(정리할 대상 없음). 다만 Phase 3에서 로컬 프로파일에 파일 로깅(`./logs/application.log`)을 새로 추가했으므로, 향후 실수로 커밋되는 일이 없도록 `.gitignore`에 `/logs/`를 추가했다. Phase 0에서 이미 삭제한 `hs_err_pid*.log`/`replay_pid*.log`(JVM 크래시 덤프) 패턴도 재발 방지 차원에서 함께 추가했다.
+
+## 4. 실제 로컬 기동 검증
+
+로컬 PostgreSQL(포트 5432, 기존 실행 중이던 인스턴스)에 `yedocb` 데이터베이스를 신규 생성한 뒤, `local` 프로파일로 `./gradlew bootRun`을 실제로 구동해 검증했다:
+- 애플리케이션 정상 기동 (schema.sql의 모든 `CREATE TABLE IF NOT EXISTS` 정상 실행, HikariCP 연결 성공, JWT 필터 등록 확인)
+- `POST /api/user/register` → `POST /api/user/login` → JWT 발급 확인
+- 발급받은 토큰으로 `GET /api/user/mypage` 조회 성공, 응답에 `uPwd` 미포함 확인
+- 토큰 없이 `GET /admin/list` 요청 시 401 확인 (Phase 2에서 수정한 `/admin/**` 보호 규칙이 실제로 동작함)
+- 토큰 없이 `GET /treatments/all`, `GET /reviews/all` 요청 시 200 확인 (공개 브라우징 permitAll 정상 동작)
+
+이 과정에서 로컬 PostgreSQL의 `template1` 콜레이션 버전 불일치 문제를 우회하기 위해 `CREATE DATABASE yedocb TEMPLATE template0`를 사용했다 — 이는 이 머신의 기존 PostgreSQL 설치 환경 이슈이며 프로젝트 코드와는 무관하다.
+
+---
+
+# 알려진 이슈 정리 (Phase 1~2 문서에 남아있던 이슈 해결)
+
+## 1. `IllegalArgumentException`이 500(Internal Server Error)으로 처리되던 문제
+
+Phase 1~2에서 "필수값 누락"/"올바르지 않은 값" 같은 순수 입력 검증 오류를 `IllegalArgumentException`으로 던지되, 전용 400 예외로 교체하지 않고 `GlobalExceptionHandler`의 `Exception` 폴백(500)에 걸리도록 남겨두었던 이슈. 전 도메인(User/Admin/Reservation/Inquiry/Notice/Consultation/Treatment/TreatmentCategory/StaffSchedule/Statistics/Review)에서 개별적으로 예외 타입을 바꾸는 대신, `GlobalExceptionHandler`에 `@ExceptionHandler(IllegalArgumentException.class)` 하나를 추가해 400으로 매핑했다 — `IllegalArgumentException`은 본질적으로 "잘못된 요청"을 의미하므로, 이 매핑이 적용된 이후에는 이 예외를 던지는 모든 서비스 메소드가 자동으로 400을 반환한다. 별도의 `InvalidRequestException` 클래스를 신설하는 대신 표준 예외를 그대로 매핑하는 방식을 택했다 — 이미 수십 곳에서 `IllegalArgumentException`을 사용 중이라 예외 타입을 일일이 교체하는 것보다 안전하고, 5개 커스텀 예외(`ResourceNotFoundException` 등)와 달리 이 예외는 "타입 자체가 곧 400을 의미"하는 표준 JDK 예외라 매핑 하나로 전 도메인에 일관 적용된다.
+
+## 2. `/admin/list`/`/admin/register`가 `Admin` 엔티티를 그대로 주고받던 문제
+
+- `AdminController.getAllAdmins()`: `List<Admin>` → `List<AdminListResponseDto>`로 변경. `AdminListResponseDto`는 이미 존재했지만(Phase 0 이전 스캐폴드에서 만들어졌으나) 어디에서도 사용되지 않던 죽은 DTO였다 — `from(Admin)` 정적 팩토리를 추가하고 실제로 연결했다. `adminPassword` 필드 자체가 이 DTO에 없어 응답에 비밀번호 해시가 포함될 수 없다.
+- `AdminController.registerAdmin()`: `@RequestBody Admin` → `@Valid @RequestBody AdminCreateRequestDto`로 변경. 이 DTO도 이미 존재했지만 미사용 상태였다. `adminLoginId`/`adminPassword`/`adminName`/`adminEmail`에 `@NotBlank`(+이메일 형식) 검증을 추가했다.
+- `AdminDetailResponseDto`에도 `from(Admin)` 정적 팩토리를 추가해 `AdminService`의 수동 setter 복사를 제거했다(다른 도메인과 동일한 컨벤션으로 통일).
+- `AdminUpdateRequestDto`에도 `@NotNull`/`@NotBlank`/`@Email` 검증을 추가하고 컨트롤러에 `@Valid`를 적용했다.
+
+### 테스트 중 발견한 부가 사항 (수정하지 않음, 기록만)
+
+Admin 도메인 전체가 `/admin/**`로 보호되면서 `/admin/register`도 ADMIN/SUPERADMIN 토큰이 있어야 호출 가능해졌다(Phase 2에서 추가한 보안 수정의 자연스러운 결과). 즉 최초의 SUPERADMIN 계정을 만들 방법이 코드상 없다 — 실제 로컬 검증 중에도 DB에 직접 INSERT하여 부트스트랩 계정을 만들어야 했다. 이는 이번 "알려진 이슈 정리" 범위가 아니라 별도의 배포 준비(Deploy Phase) 항목으로 `docs/api-contract.md`의 Admin 섹션에 참고 메모로 남겼다.
+
+## 3. 실제 동작 검증
+
+로컬 서버를 재기동하여 다음을 curl로 직접 확인했다:
+- `POST /admin/register`에 필수값을 빠뜨리면 `400` + `fieldErrors`(필드별 메시지) 응답 확인
+- 정상 등록 후 `POST /api/admin/login` → JWT 발급 → `GET /admin/list` 조회 시 `200`이며 응답 JSON에 `adminPassword`/`adminLoginId` 이외의 비밀번호 관련 필드가 전혀 없음을 확인
+- `POST /admin/staff-schedules/register`에 잘못된 `scheduleType`("INVALID")을 보내면 기존에는 500이었던 것이 이제 `400` + `"올바르지 않은 일정 유형입니다."` 메시지로 응답됨을 확인 (전역 `IllegalArgumentException` 매핑이 실제로 전 도메인에 적용됨을 증명)
+
+`./gradlew test` 기준 38개 테스트 전원 통과(로컬에 실제 `yedocb` DB가 만들어져 있어 `DemoApplicationTests.contextLoads()`도 이번에는 통과함).
+
+## 4. Review 작성자 인가 우회 취약점 수정 (문서화 이슈가 아니라 실제 보안 결함이었음)
+
+`docs/api-contract.md`에 "알려진 이슈"로 기록되어 있던 항목 중 하나("Review 작성자 확인이 요청 바디의 userId 비교로 이루어짐, JWT 미완료 임시 구현")를 다시 검토한 결과, 이는 단순한 문서 정리 대상이 아니라 **실제 인가 우회(broken access control) 취약점**이었다: `ReviewService.modifyReview`/`removeReview`가 `existingReview.getUserId().equals(요청바디의 userId)`로 본인 확인을 했는데, 이 `userId`는 클라이언트가 자유롭게 지정하는 값이었다. 즉 유효한 JWT만 있으면(자신의 계정으로 로그인한 상태라면) 요청 바디에 **다른 사용자의 `uId`를 그대로 적어 보내는 것만으로** 그 사람 명의의 리뷰를 수정/삭제할 수 있었다(uId는 로그인 아이디라 추측/열거가 어렵지 않음). `createReview`도 마찬가지로 요청 바디의 `userId`를 작성자로 그대로 저장해, 다른 사용자 명의로 리뷰를 작성하는 것도 가능했다.
+
+**수정**: `ReviewCreateRequestDto`/`ReviewUpdateRequestDto`에서 `userId` 필드를 완전히 제거했다. 대신 `ReviewController`의 등록/수정/삭제 메소드가 Spring이 주입하는 `Authentication` 파라미터에서 `authentication.getName()`(= `JwtAuthenticationFilter`가 `SecurityContextHolder`에 설정한 인증 주체, 곧 토큰의 `sub` 클레임)을 가져와 서비스에 전달하도록 바꿨다. `ReviewService.createReview(request, authenticatedUserId)`/`modifyReview(request, authenticatedUserId)`가 이 값을 사용한다(`removeReview`는 기존에도 `String userId` 파라미터를 받고 있어 시그니처는 그대로 두고 호출부만 바꿨다).
+
+**실제 검증**: 로컬 서버에서 `testuser1`으로 로그인해 리뷰를 작성한 뒤(작성자가 실제로 `testuser1`로 저장됨을 `GET /reviews/all` 응답으로 확인), `testuser2`로 로그인한 토큰으로 그 리뷰를 수정 시도 → `403 UnauthorizedActionException` 확인. `testuser1` 본인 토큰으로 수정 시도 → `200` 성공 확인. 요청 바디에 `userId`를 실어 보내도 무시되고 토큰의 신원만 사용됨을 확인.
+
+`ReviewServiceTest`도 새 메소드 시그니처(`createReview(request, userId)`, `modifyReview(request, userId)`)에 맞춰 갱신했으며, `./gradlew test` 38개 전원 통과를 재확인했다.

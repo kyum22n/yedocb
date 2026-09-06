@@ -1,4 +1,4 @@
-# API Contract — Phase 1 (초안)
+# API Contract (Phase 1~2 최종화)
 
 대상 도메인: User, AdminUser, Reservation(+Admin), Admin, NoticeEvent(+Admin), Inquiry(+Admin)
 
@@ -80,7 +80,7 @@
 
 ### GET `/reservations/{reservationId}?uId={uId}` — 예약 상세
 - Response: `ReservationResponseDto`
-- 예외: 없으면 404 (현재는 `IllegalArgumentException`으로 남아있음 — 500으로 처리됨, Phase 2에서 개선 검토)
+- 예외: 없으면 400 (`IllegalArgumentException` — GlobalExceptionHandler가 400으로 매핑, 아래 §7 참고)
 
 ### PUT `/reservations/update` — 예약 수정
 - Request Body: `ReservationUpdateRequestDto` (`reservationId, uId, treatmentId, reservationDate, reservationTime, memberMemo`)
@@ -110,19 +110,19 @@
 
 ---
 
-## 4. Admin (`/admin`)
-
-주의: 이 도메인은 예외 처리(Task 4)만 적용했고, DTO 사용 방식(예: 등록/목록이 전용 DTO가 아닌 엔티티를 그대로 주고받는 부분)은 이번 Phase 1에서 변경하지 않았다. 아래는 **현재 실제 동작**을 그대로 기술한다.
+## 4. Admin (`/admin`, ADMIN/SUPERADMIN 권한 필요 — `/admin/login` 제외)
 
 | Method | Path | Request | Response |
 |---|---|---|---|
-| GET | `/admin/list` | - | `Admin[]` (엔티티 그대로 반환 — `adminPassword` 해시 포함 필드 존재. Phase 2에서 `AdminListResponseDto`로 교체 검토 필요) |
+| GET | `/admin/list` | - | `AdminListResponseDto[]` (`adminId, adminLoginId, adminName, adminEmail, adminPhone, adminRole` — `adminPassword` 미포함) |
 | GET | `/admin/detail?adminId=` | `adminId: number` | `AdminDetailResponseDto` (`adminId, adminLoginId, adminName, adminEmail, adminPhone, adminRole, createdBy, createdAt(LocalDateTime), updatedAt(LocalDateTime)`) |
-| POST | `/admin/register` | `Admin` (엔티티 그대로 요청 바디로 받음 — `adminLoginId, adminPassword, adminName, adminEmail, adminPhone, adminRole`) | `Integer` |
-| PUT | `/admin/update` | `AdminUpdateRequestDto` (`adminId, adminName, adminEmail, adminPhone`) | `Integer` |
+| POST | `/admin/register` | `AdminCreateRequestDto` (`adminLoginId`(필수), `adminPassword`(필수), `adminName`(필수), `adminEmail`(필수, 이메일 형식), `adminPhone`, `adminRole`(미지정 시 `"ADMIN"`으로 기본 설정)) | `Integer` |
+| PUT | `/admin/update` | `AdminUpdateRequestDto` (`adminId`(필수), `adminName`(필수), `adminEmail`(필수, 이메일 형식), `adminPhone`) | `Integer` |
 | DELETE | `/admin/delete/{adminId}` | - | `Integer` |
 
-예외: 존재하지 않는 관리자 조회/수정/삭제 시 404, 로그인 ID 중복 등록 시 409.
+예외: 존재하지 않는 관리자 조회/수정/삭제 시 404, 로그인 ID 중복 등록 시 409, 필수값 누락/형식 오류 시 400.
+
+**참고**: `/admin/register`도 이제 `/admin/**`로 보호되므로 ADMIN/SUPERADMIN 토큰 없이는 신규 관리자를 등록할 수 없다 — 최초 SUPERADMIN 계정은 DB에 직접 시드하거나 별도의 부트스트랩 절차가 필요하다(현재 코드에는 부트스트랩 메커니즘이 없음 — Deploy 단계에서 결정 필요).
 
 ---
 
@@ -221,12 +221,15 @@
 
 ## 알려진 이슈 / 프론트엔드 유의사항
 
-1. **User 도메인만 `/api/...` 접두사**를 쓰고, 나머지 Phase 1 도메인(Reservation/Notice/Inquiry/Admin)은 기존 경로(`/reservations`, `/notices`, `/inquiries`, `/admin/...`)를 그대로 유지한다. Phase 2에서 전체 경로 컨벤션 통일 여부를 결정할 예정.
+1. **User 도메인만 `/api/...` 접두사**를 쓰고, 나머지 Phase 1 도메인(Reservation/Notice/Inquiry/Admin)은 기존 경로(`/reservations`, `/notices`, `/inquiries`, `/admin/...`)를 그대로 유지한다. 경로 컨벤션 통일은 하지 않기로 확정.
 2. Reservation/Inquiry의 `memberId`(number)는 전부 `uId`(string)로 변경되었다 — 기존에 프론트가 숫자 회원 ID를 넘기고 있었다면 로그인 ID(문자열)로 바꿔야 한다.
-3. `/admin/list`(관리자 목록)와 `/admin/register`(관리자 등록)는 아직 전용 DTO가 아닌 `Admin` 엔티티를 그대로 주고받는다 — `adminPassword` 해시가 목록 조회 응답에 포함되어 있으니 프론트에서 이 값을 노출하지 않도록 주의. Phase 2에서 개선 예정.
-4. 대부분의 `IllegalArgumentException` 기반 "필수값 누락"/"올바르지 않은 값" 검증 오류는 현재 500(Internal Server Error)으로 응답된다 (전용 400 예외가 아직 없음). 확정된 예외 매핑은 404/409/403/400(검증코드)/401 뿐이다. Phase 2에서 `@Valid` 전환 또는 전용 400 예외 도입 검토.
-5. `/api/user/**`, `/api/admin/**`는 SecurityConfig에 의해 인증(JWT)이 필요하다 (`register`/`login`/`refresh`/`admin/login`/`oauth2/**` 제외). 그 외 Phase 1 도메인 경로(`/reservations`, `/notices`, `/inquiries`, `/admin/...` 등 `/api` 접두사가 없는 경로)는 `anyRequest().authenticated()`에 걸려 **이제 인증이 필요해졌다** — Phase 1 이전에는 인증 자체가 없었으므로, 프론트에서 이 경로들을 호출할 때도 `Authorization` 헤더를 붙여야 한다.
-6. Google/Kakao OAuth 클라이언트 ID/Secret은 로컬 `application.properties`에서 빈 값(`${GOOGLE_CLIENT_ID:}` 등)으로 기본 설정되어 있다 — 로컬에서 소셜 로그인을 테스트하려면 환경변수로 실제 값을 주입해야 한다.
+3. `/api/user/**`, `/api/admin/**`, 접두사 없는 `/admin/**`(예: `/admin/reservations`, `/admin/staff-schedules`)는 모두 SecurityConfig에 의해 ADMIN/SUPERADMIN(또는 USER 이상) 권한이 필요하다 (`register`/`login`/`refresh`/`admin/login`/`oauth2/**` 및 `GET /treatments/**`, `GET /treatment-categories/**`, `GET /reviews/**`는 예외). 리팩토링 이전에는 인증 자체가 없었으므로, 프론트에서 이 경로들을 호출할 때 `Authorization` 헤더를 붙여야 한다.
+4. Google/Kakao OAuth 클라이언트 ID/Secret은 로컬 `application.properties`에서 빈 값(`${GOOGLE_CLIENT_ID:}` 등)으로 기본 설정되어 있다 — 로컬에서 소셜 로그인을 테스트하려면 환경변수로 실제 값을 주입해야 한다.
+
+### 해결된 이슈 (참고용 — 이전 버전 문서를 봤다면 최신 상태로 갱신됨)
+
+- ~~`/admin/list`/`/admin/register`가 `Admin` 엔티티를 그대로 주고받아 비밀번호 해시가 노출됨~~ → `AdminListResponseDto`/`AdminCreateRequestDto`로 교체 완료 (§4 참고).
+- ~~`IllegalArgumentException` 기반 검증 오류가 500으로 응답됨~~ → `GlobalExceptionHandler`에 `IllegalArgumentException` → 400 매핑 추가로 전 도메인에서 일괄 해결. 이 문서의 개별 엔드포인트 설명에 남아있던 "500(알려진 이슈)" 표기는 전부 400으로 갱신됨.
 
 ---
 
@@ -252,7 +255,7 @@
 
 `ConsultationResponseDto` 필드: `consultationId, uId, reservationId, treatmentId, consultationStatus, consultationMemo, preferredDate, preferredTime, createdAt, updatedAt`
 
-예외: 존재하지 않는 상담 조회/수정/취소 시 404 (`ResourceNotFoundException`). 필수값 누락은 아직 500(`IllegalArgumentException`, Phase 1과 동일한 알려진 이슈).
+예외: 존재하지 않는 상담 조회/수정/취소 시 404 (`ResourceNotFoundException`), 필수값 누락 시 400 (`IllegalArgumentException` -> GlobalExceptionHandler 매핑).
 
 ### 관리자 (`/admin/consultations`)
 
@@ -271,7 +274,7 @@
 
 `AdminConsultationResponseDto` 필드: `ConsultationResponseDto` + `adminId`.
 
-예외: 존재하지 않는 상담 조회/수정/삭제/전환 시 404. 필수값 누락/잘못된 상담 상태값은 500(`IllegalArgumentException`, 알려진 이슈).
+예외: 존재하지 않는 상담 조회/수정/삭제/전환 시 404. 필수값 누락/잘못된 상담 상태값은 400 (`IllegalArgumentException` -> GlobalExceptionHandler 매핑).
 
 ---
 
@@ -332,7 +335,7 @@
 예외:
 - 존재하지 않는 일정 조회/수정/삭제 시 404 (`ResourceNotFoundException`, Phase 2에서 교체됨).
 - **동일 관리자 + 동일 날짜에 이미 일정이 존재하면 409 (`DuplicateResourceException`)** — Phase 2에서 새로 추가된 검증(기존에는 검증 자체가 없어 중복 등록이 가능했던 버그).
-- 필수값 누락/잘못된 일정 유형은 500(`IllegalArgumentException`, 알려진 이슈, `@Valid` 적용은 되어 있으나 유형 화이트리스트 검증은 서비스 레벨 로직이라 여전히 `IllegalArgumentException`).
+- 필수값 누락/잘못된 일정 유형은 400 (`IllegalArgumentException` -> GlobalExceptionHandler 매핑. `@Valid`로 잡히는 필드 누락은 필드별 에러 메시지 포함, 유형 화이트리스트 검증은 서비스 레벨에서 단일 메시지로 400 응답).
 
 ---
 
@@ -350,7 +353,7 @@
 
 집계 결과가 없거나(DAO가 `null` 반환) 개별 카운트 필드가 `null`이면 서비스 레벨에서 전부 `0`으로 보정한다. `noShowRate`/`conversionRate`는 소수 둘째 자리까지 반올림(`Math.round(x*100.0)/100.0`)하며 총 건수가 0이면 `0.0`을 반환한다(0으로 나누기 방지).
 
-예외: `endDate`가 `startDate`보다 빠르면 400 취지의 검증이지만 현재는 `IllegalArgumentException`이라 500으로 응답된다(알려진 이슈, Statistics는 엔티티 조회가 없어 이번 Phase 2 예외 리트로핏 대상에서 제외됨).
+예외: `endDate`가 `startDate`보다 빠르면 400 (`IllegalArgumentException` -> GlobalExceptionHandler 매핑. Statistics는 엔티티 조회가 없어 `ResourceNotFoundException` 리트로핏 대상에서는 제외되었으나, 공통 `IllegalArgumentException` 400 매핑은 동일하게 적용됨).
 
 ---
 
@@ -362,24 +365,24 @@ Phase 2에서 신규 문서화. 관리자 대시보드 요약 정보를 제공�
 
 ## 13. Review (`/reviews`, `/admin/reviews`) — Phase 2 신규 도메인
 
+작성/수정/삭제는 `Authorization: Bearer {accessToken}` 필요. **작성자(`userId`)는 요청 바디/쿼리 파라미터로 받지 않고, 서버가 JWT 인증 주체에서 직접 가져온다** — 프론트는 `userId`를 별도로 보내지 않아도 되며(보내도 무시됨), 로그인한 사용자 본인 명의로만 작성/수정/삭제된다.
+
 ### 사용자 (`/reviews`)
 
 | Method | Path | Request | Response |
 |---|---|---|---|
-| POST | `/reviews/register` | `ReviewCreateRequestDto { treatmentId: number(필수), userId: string(필수), title: string(필수), content: string(필수), imageUrl?, hashTag? }` | `Integer` |
-| GET | `/reviews/all` | - | `ReviewResponseDto[]` (숨김 처리(`isHidden=true`)된 리뷰 제외) |
-| GET | `/reviews/treatment?treatmentId=` | `treatmentId: number` | `ReviewResponseDto[]` (숨김 제외) |
-| GET | `/reviews/{reviewId}` | - | `ReviewResponseDto` (조회 시 `hits` 조회수 1 증가) |
-| PUT | `/reviews/update` | `ReviewUpdateRequestDto { reviewId(필수), userId(필수, 작성자 본인 확인용), title(필수), content(필수), imageUrl?, hashTag? }` | `Integer` |
-| DELETE | `/reviews/delete?reviewId=&userId=` | `reviewId: number, userId: string` | `Integer` |
+| POST | `/reviews/register` | `ReviewCreateRequestDto { treatmentId: number(필수), title: string(필수), content: string(필수), imageUrl?, hashTag? }` | `Integer` (작성자는 JWT의 인증 주체로 자동 설정) |
+| GET | `/reviews/all` | - (인증 불필요, permitAll) | `ReviewResponseDto[]` (숨김 처리(`isHidden=true`)된 리뷰 제외) |
+| GET | `/reviews/treatment?treatmentId=` | `treatmentId: number` (인증 불필요) | `ReviewResponseDto[]` (숨김 제외) |
+| GET | `/reviews/{reviewId}` | - (인증 불필요) | `ReviewResponseDto` (조회 시 `hits` 조회수 1 증가) |
+| PUT | `/reviews/update` | `ReviewUpdateRequestDto { reviewId(필수), title(필수), content(필수), imageUrl?, hashTag? }` | `Integer` (작성자 본인만 가능, JWT로 확인) |
+| DELETE | `/reviews/delete?reviewId=` | `reviewId: number` | `Integer` (작성자 본인만 가능, JWT로 확인) |
 
 `ReviewResponseDto` 필드: `reviewId, treatmentId, userId, title, content, imageUrl, hashTag, hits, createdAt, updatedAt` (`isHidden`은 포함하지 않음 — 관리자 전용 정보)
 
 예외:
 - 존재하지 않는 리뷰 조회/수정/삭제 시 404 (`ResourceNotFoundException`)
-- 수정/삭제 요청의 `userId`가 실제 작성자와 다르면 403 (`UnauthorizedActionException`)
-
-**TODO**: `userId`를 요청 바디/쿼리 파라미터로 받는 것은 임시 방편이다 — JWT 인증이 완전히 연동되면 `SecurityContextHolder`에서 인증 주체를 가져오도록 변경해야 한다(Phase 1 `UserController`와 동일한 패턴의 TODO).
+- 본인이 작성한 리뷰가 아니면 403 (`UnauthorizedActionException`) — 판단 기준은 JWT 인증 주체이며 요청 바디 값이 아니다.
 
 ### 관리자 (`/admin/reviews`) — 모더레이션
 
@@ -401,5 +404,5 @@ Phase 2에서 신규 문서화. 관리자 대시보드 요약 정보를 제공�
 
 7. `Consultation`/`Treatment`/`TreatmentCategory`/`StaffSchedule`/`Statistics`/`Dashboard`는 Phase 1 문서화 당시 누락되어 있었고, 이번 Phase 2에서 처음 문서화되었다(§8~§12).
 8. `StaffSchedule` 등록/수정은 Phase 2부터 동일 관리자+날짜 중복 등록을 409로 차단한다 — 이전에는 중복 등록이 가능했던 버그였으니 프론트에서 "이미 등록된 일정" 케이스(409) 처리를 새로 추가해야 한다.
-9. `Review`는 Phase 2 신규 도메인이며, 작성자 본인 확인이 요청 바디의 `userId` 값 비교로 이루어진다(JWT 인증 미완료 상태의 임시 구현) — 프론트가 로그인한 사용자의 `uId`를 정확히 실어 보내지 않으면 항상 403이 발생한다.
-10. `Consultation`/`Treatment`/`TreatmentCategory`의 필수값 누락/잘못된 값 검증은 Phase 2에서 `@Valid`(400, 필드별 에러 메시지 포함)로 일부 전환되었으나, 서비스 레벨의 상태값 화이트리스트 검증(예: `consultationStatus`가 RECEIVED/SCHEDULED/... 중 하나인지)은 여전히 `IllegalArgumentException`(500)으로 남아있다 — Phase 3에서 `@Pattern`/enum 기반 검증 또는 전용 400 예외 도입을 검토할 것.
+9. ~~`Review`의 작성자 본인 확인이 요청 바디의 `userId` 값 비교로 이루어짐(JWT 인증 미완료 상태의 임시 구현, 다른 사용자 명의 도용 가능)~~ → 해결됨. 이제 작성/수정/삭제 모두 JWT 인증 주체(`Authentication.getName()`)로 작성자를 식별하며, 요청 바디의 `userId`는 더 이상 받지 않는다(§13 참고).
+10. `Consultation`/`Treatment`/`TreatmentCategory`의 필수값 누락은 `@Valid`(400, 필드별 에러 메시지 포함)로 검증되고, 서비스 레벨의 상태값 화이트리스트 검증(예: `consultationStatus`가 RECEIVED/SCHEDULED/... 중 하나인지)은 `GlobalExceptionHandler`의 `IllegalArgumentException` -> 400 매핑으로 처리된다(단일 메시지, 필드별 에러 목록은 없음). 해결됨 — 이전 버전 문서의 "500(알려진 이슈)" 표기는 폐기.

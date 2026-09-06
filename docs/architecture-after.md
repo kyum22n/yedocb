@@ -30,7 +30,7 @@ Mapper XML (resources/mapper/*.xml)   — 실제 SQL (PostgreSQL)
 - **입력 검증은 3단계로 나뉜다**:
   1. Bean Validation(`@NotBlank`, `@NotNull` 등 + 컨트롤러의 `@Valid`) — 형식적 필수값 검증. 위반 시 `MethodArgumentNotValidException` → 400 + `fieldErrors` 목록.
   2. 비즈니스 규칙 검증(존재 확인, 중복 확인, 권한 확인) — `com.example.demo.exception`의 커스텀 예외 사용 (`ResourceNotFoundException`=404, `DuplicateResourceException`=409, `UnauthorizedActionException`=403).
-  3. 상태값 화이트리스트 검증 등 일부 레거시 검증 — 아직 `IllegalArgumentException`(500)으로 남아있다 (알려진 이슈, `docs/api-contract.md` 참고).
+  3. 상태값 화이트리스트 검증 등 서비스 레벨의 순수 입력 검증 — `IllegalArgumentException`을 던지며, `GlobalExceptionHandler`가 이를 400으로 매핑한다(전용 커스텀 예외는 아니므로 필드별 `fieldErrors` 없이 단일 메시지로 응답).
 - **예외 처리는 `@RestControllerAdvice` 하나로 집중한다.** `GlobalExceptionHandler`가 모든 예외를 가로채 `ErrorResponse`(status/message/timestamp/fieldErrors) 형태로 응답한다. 정상 응답에는 공용 래퍼(`ApiResponse<T>` 같은)를 쓰지 않는다 — 컨트롤러는 `ResponseEntity<ExactDtoType>`을 그대로 반환한다.
 - **인증은 JWT 기반 Stateless.** `SecurityConfig` + `JwtAuthenticationFilter` + `JwtTokenProvider`. permitAll 대상 경로는 `security/SecurityPaths`(전체 permitAll `PUBLIC_PATTERNS`, GET 전용 permitAll `PUBLIC_GET_PATTERNS`) 한 곳에서만 관리한다.
 - **DB 스키마는 `schema.sql`에 `CREATE TABLE IF NOT EXISTS`로만 정의한다** (DROP 없음, additive). PostgreSQL 문법.
