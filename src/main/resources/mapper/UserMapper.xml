@@ -44,6 +44,14 @@
     WHERE u_id = #{uId}
   </update>
 
+  <!-- 비밀번호 변경 -->
+  <update id="updatePassword">
+    UPDATE users
+    SET u_pwd = #{uPwd},
+        updated_at = NOW()
+    WHERE u_id = #{uId}
+  </update>
+
   <!-- 회원 삭제 -->
   <delete id="deleteUser">
     DELETE FROM users

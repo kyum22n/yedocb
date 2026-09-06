@@ -3,6 +3,7 @@ package com.example.demo.dao;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import com.example.demo.entity.User;
 
@@ -33,6 +34,9 @@ public interface UserDao {
 
     // 회원 정보 수정
     public int updateUser(User user);
+
+    // 비밀번호 변경
+    public int updatePassword(@Param("uId") String uId, @Param("uPwd") String uPwd);
 
     // 회원 삭제 / 탈퇴
     public int deleteUser(String uId);

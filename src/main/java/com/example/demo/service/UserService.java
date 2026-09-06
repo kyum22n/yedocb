@@ -7,9 +7,11 @@ import org.springframework.stereotype.Service;
 import com.example.demo.dao.UserDao;
 import com.example.demo.dto.request.user.UserCreateRequestDto;
 import com.example.demo.dto.request.user.UserMypageUpdateRequestDto;
+import com.example.demo.dto.request.user.UserPasswordUpdateRequestDto;
 import com.example.demo.dto.response.user.UserMypageResponseDto;
 import com.example.demo.entity.User;
 import com.example.demo.exception.DuplicateResourceException;
+import com.example.demo.exception.InvalidCredentialsException;
 import com.example.demo.exception.ResourceNotFoundException;
 
 /**
@@ -69,21 +71,37 @@ public class UserService {
         return UserMypageResponseDto.from(user);
     }
 
-    // 마이페이지 수정
-    public int modifyUser(UserMypageUpdateRequestDto request) {
+    // 마이페이지 수정 (수정 대상은 인증된 본인)
+    public int modifyUser(UserMypageUpdateRequestDto request, String authenticatedUserId) {
 
-        if (userDao.selectUserById(request.getUId()) == null) {
+        if (userDao.selectUserById(authenticatedUserId) == null) {
             throw new ResourceNotFoundException("존재하지 않는 회원입니다.");
         }
 
         User updatedUser = new User();
-        updatedUser.setUId(request.getUId());
+        updatedUser.setUId(authenticatedUserId);
         updatedUser.setUName(request.getUName());
         updatedUser.setUPhone(request.getUPhone());
         updatedUser.setUBirth(request.getUBirth());
         updatedUser.setUGender(request.getUGender());
 
         return userDao.updateUser(updatedUser);
+    }
+
+    // 비밀번호 변경 (대상은 인증된 본인, 현재 비밀번호 확인 필요)
+    public int changePassword(UserPasswordUpdateRequestDto request, String authenticatedUserId) {
+
+        User user = userDao.selectUserById(authenticatedUserId);
+
+        if (user == null) {
+            throw new ResourceNotFoundException("존재하지 않는 회원입니다.");
+        }
+
+        if (!passwordEncoder.matches(request.getCurrentPwd(), user.getUPwd())) {
+            throw new InvalidCredentialsException("현재 비밀번호가 올바르지 않습니다.");
+        }
+
+        return userDao.updatePassword(authenticatedUserId, passwordEncoder.encode(request.getNewPwd()));
     }
 
     // 회원 탈퇴

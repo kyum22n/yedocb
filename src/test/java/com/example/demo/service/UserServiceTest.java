@@ -18,9 +18,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.example.demo.dao.UserDao;
 import com.example.demo.dto.request.user.UserCreateRequestDto;
 import com.example.demo.dto.request.user.UserMypageUpdateRequestDto;
+import com.example.demo.dto.request.user.UserPasswordUpdateRequestDto;
 import com.example.demo.dto.response.user.UserMypageResponseDto;
 import com.example.demo.entity.User;
 import com.example.demo.exception.DuplicateResourceException;
+import com.example.demo.exception.InvalidCredentialsException;
 import com.example.demo.exception.ResourceNotFoundException;
 
 /**
@@ -118,10 +120,9 @@ class UserServiceTest {
     @Test
     void 마이페이지수정_존재하지않으면_ResourceNotFoundException() {
         UserMypageUpdateRequestDto request = new UserMypageUpdateRequestDto();
-        request.setUId("nouser");
         when(userDao.selectUserById("nouser")).thenReturn(null);
 
-        assertThatThrownBy(() -> userService.modifyUser(request))
+        assertThatThrownBy(() -> userService.modifyUser(request, "nouser"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -131,5 +132,53 @@ class UserServiceTest {
 
         assertThatThrownBy(() -> userService.removeUser("nouser"))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void 비밀번호변경_현재비밀번호불일치시_InvalidCredentialsException() {
+        User user = new User();
+        user.setUId("testuser");
+        user.setUPwd("encoded-old-pwd");
+        when(userDao.selectUserById("testuser")).thenReturn(user);
+        when(passwordEncoder.matches("wrong", "encoded-old-pwd")).thenReturn(false);
+
+        UserPasswordUpdateRequestDto request = new UserPasswordUpdateRequestDto();
+        request.setCurrentPwd("wrong");
+        request.setNewPwd("NewPassword1!");
+
+        assertThatThrownBy(() -> userService.changePassword(request, "testuser"))
+                .isInstanceOf(InvalidCredentialsException.class);
+    }
+
+    @Test
+    void 비밀번호변경_존재하지않으면_ResourceNotFoundException() {
+        when(userDao.selectUserById("nouser")).thenReturn(null);
+
+        UserPasswordUpdateRequestDto request = new UserPasswordUpdateRequestDto();
+        request.setCurrentPwd("old");
+        request.setNewPwd("NewPassword1!");
+
+        assertThatThrownBy(() -> userService.changePassword(request, "nouser"))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void 비밀번호변경_성공() {
+        User user = new User();
+        user.setUId("testuser");
+        user.setUPwd("encoded-old-pwd");
+        when(userDao.selectUserById("testuser")).thenReturn(user);
+        when(passwordEncoder.matches("oldpwd", "encoded-old-pwd")).thenReturn(true);
+        when(passwordEncoder.encode("NewPassword1!")).thenReturn("encoded-new-pwd");
+        when(userDao.updatePassword("testuser", "encoded-new-pwd")).thenReturn(1);
+
+        UserPasswordUpdateRequestDto request = new UserPasswordUpdateRequestDto();
+        request.setCurrentPwd("oldpwd");
+        request.setNewPwd("NewPassword1!");
+
+        int result = userService.changePassword(request, "testuser");
+
+        assertThat(result).isEqualTo(1);
+        verify(userDao).updatePassword("testuser", "encoded-new-pwd");
     }
 }
