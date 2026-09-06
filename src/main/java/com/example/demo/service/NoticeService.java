@@ -1,5 +1,7 @@
 package com.example.demo.service;
 
+import com.example.demo.exception.ResourceNotFoundException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -90,7 +92,7 @@ public class NoticeService {
         Notice notice = noticeDao.selectVisibleNoticeById(noticeId);
 
         if(notice == null) {
-            throw new IllegalArgumentException("존재하지 않는 공지/이벤트입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 공지/이벤트입니다.");
         }
 
         NoticeResponseDto response = new NoticeResponseDto();

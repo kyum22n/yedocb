@@ -1,5 +1,7 @@
 package com.example.demo.service;
 
+import com.example.demo.exception.ResourceNotFoundException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -138,7 +140,7 @@ public class AdminNoticeService {
         Notice notice = noticeDao.selectNoticeById(noticeId);
 
         if(notice == null) {
-            throw new IllegalArgumentException("존재하지 않는 공지/이벤트입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 공지/이벤트입니다.");
         }
 
         AdminNoticeResponseDto response = new AdminNoticeResponseDto();
@@ -191,7 +193,7 @@ public class AdminNoticeService {
         Notice existingNotice = noticeDao.selectNoticeById(request.getNoticeId());
 
         if(existingNotice == null) {
-            throw new IllegalArgumentException("존재하지 않는 공지/이벤트입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 공지/이벤트입니다.");
         }
 
         Notice notice = new Notice();
@@ -217,7 +219,7 @@ public class AdminNoticeService {
         Notice existingNotice = noticeDao.selectNoticeById(noticeId);
 
         if(existingNotice == null) {
-            throw new IllegalArgumentException("존재하지 않는 공지/이벤트입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 공지/이벤트입니다.");
         }
 
         return noticeDao.deleteNotice(noticeId);
