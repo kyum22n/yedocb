@@ -47,6 +47,14 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
+    // 필수값 누락/형식 오류 등 순수 입력 검증성 예외 (여러 서비스에서 "~는 필수입니다",
+    // "올바르지 않은 ~입니다" 메시지로 던지던 IllegalArgumentException이 지금까지 Exception
+    // 폴백(500)으로 처리되던 알려진 이슈를 해결한다 - 이 예외는 본질적으로 잘못된 요청(400)이다.
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
         List<ErrorResponse.FieldError> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
