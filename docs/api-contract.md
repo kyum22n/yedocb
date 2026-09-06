@@ -207,8 +207,9 @@
 
 ### POST `/api/admin/login` — 관리자 로그인 (permitAll)
 - Request Body: `AdminLoginRequestDto { adminLoginId: string, adminPassword: string }`
-- Response: `TokenResponseDto { accessToken, refreshToken: null, userId: adminLoginId }` (관리자 로그인은 리프레시 토큰을 발급하지 않음 — B 원본 동작 유지)
+- Response: `AdminTokenResponseDto { accessToken: string, adminId: number, adminLoginId: string, adminRole: string("ADMIN"|"SUPERADMIN") }` (리프레시 토큰 미발급 — B 원본 동작 유지. `TokenResponseDto`가 아니라 전용 DTO이며, 하위 관리자 API가 요청 바디에 필요로 하는 숫자 `adminId`와 프론트 메뉴 분기용 `adminRole`을 함께 내려준다)
 - 예외: 401 (`InvalidCredentialsException`)
+- **프론트 참고**: `AdminReservation*RequestDto.adminId`, `AdminInquiryAnswerCreateRequestDto.adminId`, `AdminConsultation*RequestDto.adminId` 등 관리자 하위 API가 요청 바디에 받는 숫자 `adminId`는 로그인 응답의 이 `adminId` 값을 그대로 사용하면 된다 — JWT에서 서버가 자동으로 채워주지 않으므로 프론트가 값을 담아 보내야 한다.
 
 ### POST `/api/oauth2/google?code={code}` / POST `/api/oauth2/kakao?code={code}` — 소셜 로그인 (permitAll)
 - Response: `TokenResponseDto { accessToken, refreshToken: null, userId }` (OAuth 로그인도 리프레시 토큰 미발급)

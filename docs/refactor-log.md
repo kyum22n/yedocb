@@ -364,3 +364,13 @@ Admin 도메인 전체가 `/admin/**`로 보호되면서 `/admin/register`도 AD
 **실제 검증**: 로컬 서버에서 `testuser1`으로 로그인해 리뷰를 작성한 뒤(작성자가 실제로 `testuser1`로 저장됨을 `GET /reviews/all` 응답으로 확인), `testuser2`로 로그인한 토큰으로 그 리뷰를 수정 시도 → `403 UnauthorizedActionException` 확인. `testuser1` 본인 토큰으로 수정 시도 → `200` 성공 확인. 요청 바디에 `userId`를 실어 보내도 무시되고 토큰의 신원만 사용됨을 확인.
 
 `ReviewServiceTest`도 새 메소드 시그니처(`createReview(request, userId)`, `modifyReview(request, userId)`)에 맞춰 갱신했으며, `./gradlew test` 38개 전원 통과를 재확인했다.
+
+## 5. 관리자 로그인 응답에 adminId/adminRole 누락 (프론트엔드 세션 문의 대응)
+
+Frontend(yedocf) 세션이 Phase 5 착수 전 기존 화면 재정합 중 발견해 알려온 문제: `POST /api/admin/login` 응답(`TokenResponseDto`)에 `accessToken`/`userId`(=adminLoginId)만 있고 숫자 `adminId`나 `adminRole`이 없었다. 그런데 `AdminReservation*RequestDto.adminId`, `AdminInquiryAnswerCreateRequestDto.adminId`, `AdminConsultation*RequestDto.adminId` 등 여러 관리자 하위 API가 요청 바디에 숫자 `adminId`를 요구하고 있어, 프론트가 로그인 직후 이 값을 알아낼 방법이 없었다(로그인 시 알 수 있는 건 문자열 `adminLoginId`뿐).
+
+**판단**: JWT에서 서버가 자동으로 `adminId`를 채워주는 방식(Review처럼 `Authentication`에서 주체를 가져오는 패턴)도 검토했으나, 대상 엔드포인트가 여러 도메인에 걸쳐 있고 이번 대응은 "로그인 응답 보강"만으로 프론트를 즉시 풀어줄 수 있어 더 단순한 방법을 택했다 — 각 서비스 메소드 시그니처를 바꾸는 대신 로그인 응답 DTO에 필요한 정보를 담아 내려주는 쪽으로 결정했다.
+
+**수정**: 기존 공용 `TokenResponseDto`를 그대로 확장하는 대신, 관리자 전용 `AdminTokenResponseDto { accessToken, adminId, adminLoginId, adminRole }`를 신설해 `AdminLoginController`가 이를 반환하도록 바꿨다(프로젝트 컨벤션상 컨트롤러는 `ResponseEntity<정확한DTO타입>`을 반환해야 하므로, User/OAuth 로그인에는 해당 없는 필드를 공용 DTO에 얹기보다 전용 타입을 만드는 쪽을 택함). `adminRole`은 이미 JWT의 `roles` 클레임에도 들어있지만(프론트가 원한다면 토큰을 디코드해서 꺼낼 수도 있음), 로그인 응답에 평문으로 내려줘서 프론트가 토큰을 디코드하지 않고도 SUPERADMIN 전용 메뉴 분기를 할 수 있게 했다.
+
+로컬 서버에서 `POST /api/admin/login` 실제 호출 → `{"accessToken":"...","adminId":2,"adminLoginId":"admin1","adminRole":"SUPERADMIN"}` 응답 확인, `./gradlew test` 38개 전원 통과 재확인.
