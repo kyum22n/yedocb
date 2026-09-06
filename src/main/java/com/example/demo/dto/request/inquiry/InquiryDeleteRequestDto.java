@@ -17,5 +17,5 @@ public class InquiryDeleteRequestDto {
     // 문의 ID
     private Integer inquiryId;
     // 문의자 ID
-    private Integer memberId;
+    private String uId;
 }

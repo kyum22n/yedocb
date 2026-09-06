@@ -52,9 +52,9 @@ public class AdminConsultationController {
 
     // 회원별 상담 목록 조회
     @GetMapping("/member")
-    public ResponseEntity<List<AdminConsultationResponseDto>> getConsultationsByMemberId(
-            @RequestParam("memberId") Integer memberId) {
-        return ResponseEntity.ok(consultationService.getConsultationsByMemberId(memberId));
+    public ResponseEntity<List<AdminConsultationResponseDto>> getConsultationsByUId(
+            @RequestParam("uId") String uId) {
+        return ResponseEntity.ok(consultationService.getConsultationsByUId(uId));
     }
 
     // 담당자별 상담 목록 조회

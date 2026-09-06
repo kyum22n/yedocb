@@ -45,9 +45,9 @@ public class AdminInquiryController {
 
     // 회원별 문의 목록 조회
     @GetMapping("/member")
-    public ResponseEntity<List<AdminInquiryResponseDto>> getInquiriesByMemberId(
-            @RequestParam("memberId") Integer memberId) {
-        return ResponseEntity.ok(inquiryService.getInquiriesByMemberId(memberId));
+    public ResponseEntity<List<AdminInquiryResponseDto>> getInquiriesByUId(
+            @RequestParam("uId") String uId) {
+        return ResponseEntity.ok(inquiryService.getInquiriesByUId(uId));
     }
 
     // 문의 유형별 목록 조회

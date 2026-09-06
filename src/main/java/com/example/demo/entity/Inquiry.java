@@ -18,7 +18,7 @@ public class Inquiry {
     // 문의 ID
     private Integer inquiryId;
     // 문의자(사용자) ID
-    private Integer memberId;
+    private String uId;
     // 문의 유형
     private String inquiryType;
     // 문의 제목

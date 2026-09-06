@@ -25,11 +25,11 @@ public interface InquiryDao {
     public int insertInquiry(Inquiry inquiry);
 
     // 회원별 문의 목록 조회
-    public List<Inquiry> selectInquiriesByMemberId(Integer memberId);
+    public List<Inquiry> selectInquiriesByUId(String uId);
 
     // 문의 상세 조회
     public Inquiry selectInquiryById(@Param("inquiryId") Integer inquiryId,
-                                     @Param("memberId") Integer memberId);
+                                     @Param("uId") String uId);
 
     // 문의 답변 조회
     public InquiryAnswer selectAnswerByInquiryId(Integer inquiryId);
@@ -42,5 +42,5 @@ public interface InquiryDao {
 
     // 문의 삭제
     public int deleteInquiry(@Param("inquiryId") Integer inquiryId,
-                             @Param("memberId") Integer memberId);
+                             @Param("uId") String uId);
 }

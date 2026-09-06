@@ -21,7 +21,7 @@ public class ReservationResponseDto {
     // 예약 ID
     private Integer reservationId;
     // 예약자 ID
-    private Integer memberId;
+    private String uId;
     // 진료 항목 ID
     private Integer treatmentId;
     // 예약 일자

@@ -17,5 +17,5 @@ public class ConsultationCancelRequestDto {
     // 상담 ID
     private Integer consultationId;
     // 사용자 ID
-    private Integer memberId;
+    private String uId;
 }

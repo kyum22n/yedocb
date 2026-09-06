@@ -1,5 +1,7 @@
 package com.example.demo.service;
 
+import com.example.demo.exception.ResourceNotFoundException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,7 +40,7 @@ public class InquiryService {
             throw new IllegalArgumentException("문의 등록 요청 정보가 없습니다.");
         }
 
-        if(request.getMemberId() == null) {
+        if(request.getUId() == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
@@ -62,7 +64,7 @@ public class InquiryService {
         }
 
         Inquiry inquiry = new Inquiry();
-        inquiry.setMemberId(request.getMemberId());
+        inquiry.setUId(request.getUId());
         inquiry.setInquiryType(request.getInquiryType());
         inquiry.setTitle(request.getTitle());
         inquiry.setContent(request.getContent());
@@ -71,19 +73,19 @@ public class InquiryService {
     }
 
     // 회원별 문의 목록 조회
-    public List<InquiryResponseDto> getInquiriesByMemberId(Integer memberId) {
+    public List<InquiryResponseDto> getInquiriesByUId(String uId) {
 
-        if(memberId == null) {
+        if(uId == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
-        List<Inquiry> inquiries = inquiryDao.selectInquiriesByMemberId(memberId);
+        List<Inquiry> inquiries = inquiryDao.selectInquiriesByUId(uId);
         List<InquiryResponseDto> listResponse = new ArrayList<>();
 
         for(Inquiry inquiry : inquiries) {
             InquiryResponseDto response = new InquiryResponseDto();
             response.setInquiryId(inquiry.getInquiryId());
-            response.setMemberId(inquiry.getMemberId());
+            response.setUId(inquiry.getUId());
             response.setInquiryType(inquiry.getInquiryType());
             response.setTitle(inquiry.getTitle());
             response.setContent(inquiry.getContent());
@@ -110,25 +112,25 @@ public class InquiryService {
     }
 
     // 문의 상세 조회
-    public InquiryResponseDto getInquiryById(Integer inquiryId, Integer memberId) {
+    public InquiryResponseDto getInquiryById(Integer inquiryId, String uId) {
 
         if(inquiryId == null) {
             throw new IllegalArgumentException("문의 ID는 필수입니다.");
         }
 
-        if(memberId == null) {
+        if(uId == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
-        Inquiry inquiry = inquiryDao.selectInquiryById(inquiryId, memberId);
+        Inquiry inquiry = inquiryDao.selectInquiryById(inquiryId, uId);
 
         if(inquiry == null) {
-            throw new IllegalArgumentException("존재하지 않는 문의입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 문의입니다.");
         }
 
         InquiryResponseDto response = new InquiryResponseDto();
         response.setInquiryId(inquiry.getInquiryId());
-        response.setMemberId(inquiry.getMemberId());
+        response.setUId(inquiry.getUId());
         response.setInquiryType(inquiry.getInquiryType());
         response.setTitle(inquiry.getTitle());
         response.setContent(inquiry.getContent());
@@ -162,7 +164,7 @@ public class InquiryService {
             throw new IllegalArgumentException("문의 ID는 필수입니다.");
         }
 
-        if(request.getMemberId() == null) {
+        if(request.getUId() == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
@@ -177,15 +179,15 @@ public class InquiryService {
             throw new IllegalArgumentException("올바르지 않은 문의 유형입니다.");
         }
 
-        Inquiry existingInquiry = inquiryDao.selectInquiryById(request.getInquiryId(), request.getMemberId());
+        Inquiry existingInquiry = inquiryDao.selectInquiryById(request.getInquiryId(), request.getUId());
 
         if(existingInquiry == null) {
-            throw new IllegalArgumentException("존재하지 않는 문의입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 문의입니다.");
         }
 
         Inquiry inquiry = new Inquiry();
         inquiry.setInquiryId(request.getInquiryId());
-        inquiry.setMemberId(request.getMemberId());
+        inquiry.setUId(request.getUId());
         inquiry.setInquiryType(request.getInquiryType());
         inquiry.setTitle(request.getTitle());
         inquiry.setContent(request.getContent());
@@ -204,18 +206,18 @@ public class InquiryService {
             throw new IllegalArgumentException("문의 ID는 필수입니다.");
         }
 
-        if(request.getMemberId() == null) {
+        if(request.getUId() == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
-        Inquiry existingInquiry = inquiryDao.selectInquiryById(request.getInquiryId(), request.getMemberId());
+        Inquiry existingInquiry = inquiryDao.selectInquiryById(request.getInquiryId(), request.getUId());
 
         if(existingInquiry == null) {
-            throw new IllegalArgumentException("존재하지 않는 문의입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 문의입니다.");
         }
 
         inquiryDao.deleteAnswerByInquiryId(request.getInquiryId());
 
-        return inquiryDao.deleteInquiry(request.getInquiryId(), request.getMemberId());
+        return inquiryDao.deleteInquiry(request.getInquiryId(), request.getUId());
     }
 }

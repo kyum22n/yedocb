@@ -10,29 +10,29 @@
         keyProperty="reservationId"
     > 
         INSERT INTO reservation 
-            (member_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at) 
+            (u_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at) 
         VALUES 
-            (#{memberId}, #{treatmentId}, #{adminId}, #{reservationDate}, #{reservationTime}, COALESCE(#{reservationStatus}, 'PENDING'), #{memberMemo}, #{adminMemo}, COALESCE(#{pmsSyncStatus}, 'PENDING'), NOW(), NOW()) 
+            (#{uId}, #{treatmentId}, #{adminId}, #{reservationDate}, #{reservationTime}, COALESCE(#{reservationStatus}, 'PENDING'), #{memberMemo}, #{adminMemo}, COALESCE(#{pmsSyncStatus}, 'PENDING'), NOW(), NOW()) 
     </insert>
 
     <!--예약 목록 조회-->
     <select id="selectAllReservations" resultType="com.example.demo.entity.Reservation">
-        SELECT reservation_id, member_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
+        SELECT reservation_id, u_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
         FROM reservation
         ORDER BY reservation_id
     </select>
 
     <!--회원별 예약 목록 조회-->
-    <select id="selectReservationsByMemberId" resultType="com.example.demo.entity.Reservation">
-        SELECT reservation_id, member_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
+    <select id="selectReservationsByUId" resultType="com.example.demo.entity.Reservation">
+        SELECT reservation_id, u_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
         FROM reservation
-        WHERE member_id = #{memberId}
+        WHERE u_id = #{uId}
         ORDER BY reservation_id
     </select>
 
     <!--담당자별 예약 목록 조회-->
     <select id="selectReservationsByAdminId" resultType="com.example.demo.entity.Reservation">
-        SELECT reservation_id, member_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
+        SELECT reservation_id, u_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
         FROM reservation
         WHERE admin_id = #{adminId}
         ORDER BY reservation_id
@@ -40,7 +40,7 @@
     
     <!--예약 상태별 목록 조회-->
     <select id="selectReservationsByStatus" resultType="com.example.demo.entity.Reservation">
-        SELECT reservation_id, member_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
+        SELECT reservation_id, u_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
         FROM reservation
         WHERE reservation_status = #{reservationStatus}
         ORDER BY reservation_id
@@ -48,7 +48,7 @@
 
     <!--PMS 연동 상태별 목록 조회-->
     <select id="selectReservationsByPmsSyncStatus" resultType="com.example.demo.entity.Reservation">
-        SELECT reservation_id, member_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
+        SELECT reservation_id, u_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
         FROM reservation
         WHERE pms_sync_status = #{pmsSyncStatus}
         ORDER BY reservation_id
@@ -56,7 +56,7 @@
 
     <!--예약 상세 조회-->
     <select id="selectReservationById" resultType="com.example.demo.entity.Reservation">
-        SELECT reservation_id, member_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
+        SELECT reservation_id, u_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
         FROM reservation
         WHERE reservation_id = #{reservationId}
     </select>

@@ -26,7 +26,7 @@ public interface AdminReservationDao {
     public List<Reservation> selectAllReservations();
 
     // 회원별 예약 목록 조회
-    public List<Reservation> selectReservationsByMemberId(Integer memberId);
+    public List<Reservation> selectReservationsByUId(String uId);
 
     // 담당자별 예약 목록 조회
     public List<Reservation> selectReservationsByAdminId(Integer adminId);

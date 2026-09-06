@@ -9,24 +9,24 @@
             useGeneratedKeys="true"
             keyProperty="consultationId">
         INSERT INTO consultation
-            (member_id, treatment_id, consultation_memo, preferred_date, preferred_time, created_at, updated_at)
+            (u_id, treatment_id, consultation_memo, preferred_date, preferred_time, created_at, updated_at)
         VALUES
-            (#{memberId}, #{treatmentId}, #{consultationMemo}, #{preferredDate}, #{preferredTime}, NOW(), NOW())
+            (#{uId}, #{treatmentId}, #{consultationMemo}, #{preferredDate}, #{preferredTime}, NOW(), NOW())
     </insert>
 
     <!--회원별 상담 목록 조회-->
-    <select id="selectConsultationsByMemberId" resultType="com.example.demo.entity.Consultation">
-        SELECT consultation_id, member_id, reservation_id, treatment_id, admin_id, consultation_status, consultation_memo, preferred_date, preferred_time, created_at, updated_at
+    <select id="selectConsultationsByUId" resultType="com.example.demo.entity.Consultation">
+        SELECT consultation_id, u_id, reservation_id, treatment_id, admin_id, consultation_status, consultation_memo, preferred_date, preferred_time, created_at, updated_at
         FROM consultation
-        WHERE member_id = #{memberId}
+        WHERE u_id = #{uId}
         ORDER BY consultation_id
     </select>
 
     <!--상담 상세 조회-->
     <select id="selectConsultationById" resultType="com.example.demo.entity.Consultation">
-        SELECT consultation_id, member_id, reservation_id, treatment_id, admin_id, consultation_status, consultation_memo, preferred_date, preferred_time, created_at, updated_at
+        SELECT consultation_id, u_id, reservation_id, treatment_id, admin_id, consultation_status, consultation_memo, preferred_date, preferred_time, created_at, updated_at
         FROM consultation
-        WHERE consultation_id = #{consultationId} AND member_id = #{memberId}
+        WHERE consultation_id = #{consultationId} AND u_id = #{uId}
     </select>
 
     <!--상담 수정-->
@@ -37,7 +37,7 @@
             preferred_date = #{preferredDate},
             preferred_time = #{preferredTime},
             updated_at = NOW()
-        WHERE consultation_id = #{consultationId} AND member_id = #{memberId}
+        WHERE consultation_id = #{consultationId} AND u_id = #{uId}
     </update>
 
     <!--상담 취소-->
@@ -45,7 +45,7 @@
         UPDATE consultation
         SET consultation_status = 'CANCELED',
             updated_at = NOW()
-        WHERE consultation_id = #{consultationId} AND member_id = #{memberId}
+        WHERE consultation_id = #{consultationId} AND u_id = #{uId}
     </update>
 
 </mapper>

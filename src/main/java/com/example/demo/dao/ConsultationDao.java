@@ -24,16 +24,16 @@ public interface ConsultationDao {
     public int insertConsultation(Consultation consultation);
 
     // 회원별 상담 목록 조회
-    public List<Consultation> selectConsultationsByMemberId(Integer memberId);
+    public List<Consultation> selectConsultationsByUId(String uId);
 
     // 상담 상세 조회
     public Consultation selectConsultationById(@Param("consultationId") Integer consultationId,
-                                               @Param("memberId") Integer memberId);
+                                               @Param("uId") String uId);
 
     // 상담 수정
     public int updateConsultation(Consultation consultation);
 
     // 상담 취소
     public int cancelConsultation(@Param("consultationId") Integer consultationId,
-                                  @Param("memberId") Integer memberId);
+                                  @Param("uId") String uId);
 }

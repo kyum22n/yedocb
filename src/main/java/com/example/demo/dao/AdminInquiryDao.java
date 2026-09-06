@@ -24,7 +24,7 @@ public interface AdminInquiryDao {
     public List<Inquiry> selectAllInquiries();
 
     // 회원별 문의 목록 조회
-    public List<Inquiry> selectInquiriesByMemberId(Integer memberId);
+    public List<Inquiry> selectInquiriesByUId(String uId);
 
     // 문의 유형별 목록 조회
     public List<Inquiry> selectInquiriesByType(String inquiryType);

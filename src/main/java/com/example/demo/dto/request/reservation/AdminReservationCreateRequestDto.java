@@ -18,7 +18,7 @@ import lombok.Data;
 @Data
 public class AdminReservationCreateRequestDto {
     // 예약자 ID
-    private Integer memberId;
+    private String uId;
     // 진료 항목 ID
     private Integer treatmentId;
     // 담당자 ID

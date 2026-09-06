@@ -17,5 +17,5 @@ public class ReservationCancelRequestDto {
     // 예약 ID
     private Integer reservationId;
     // 예약자 ID
-    private Integer memberId;
+    private String uId;
 }

@@ -5,22 +5,22 @@
 
     <!--문의 목록 조회-->
     <select id="selectAllInquiries" resultType="com.example.demo.entity.Inquiry">
-        SELECT inquiry_id, member_id, inquiry_type, title, content, inquiry_status, created_at, updated_at
+        SELECT inquiry_id, u_id, inquiry_type, title, content, inquiry_status, created_at, updated_at
         FROM inquiry
         ORDER BY inquiry_id
     </select>
 
     <!--회원별 문의 목록 조회-->
-    <select id="selectInquiriesByMemberId" resultType="com.example.demo.entity.Inquiry">
-        SELECT inquiry_id, member_id, inquiry_type, title, content, inquiry_status, created_at, updated_at
+    <select id="selectInquiriesByUId" resultType="com.example.demo.entity.Inquiry">
+        SELECT inquiry_id, u_id, inquiry_type, title, content, inquiry_status, created_at, updated_at
         FROM inquiry
-        WHERE member_id = #{memberId}
+        WHERE u_id = #{uId}
         ORDER BY inquiry_id
     </select>
 
     <!--문의 유형별 목록 조회-->
     <select id="selectInquiriesByType" resultType="com.example.demo.entity.Inquiry">
-        SELECT inquiry_id, member_id, inquiry_type, title, content, inquiry_status, created_at, updated_at
+        SELECT inquiry_id, u_id, inquiry_type, title, content, inquiry_status, created_at, updated_at
         FROM inquiry
         WHERE inquiry_type = #{inquiryType}
         ORDER BY inquiry_id
@@ -28,7 +28,7 @@
 
     <!--문의 상태별 목록 조회-->
     <select id="selectInquiriesByStatus" resultType="com.example.demo.entity.Inquiry">
-        SELECT inquiry_id, member_id, inquiry_type, title, content, inquiry_status, created_at, updated_at
+        SELECT inquiry_id, u_id, inquiry_type, title, content, inquiry_status, created_at, updated_at
         FROM inquiry
         WHERE inquiry_status = #{inquiryStatus}
         ORDER BY inquiry_id
@@ -36,7 +36,7 @@
 
     <!--문의 상세 조회-->
     <select id="selectInquiryById" resultType="com.example.demo.entity.Inquiry">
-        SELECT inquiry_id, member_id, inquiry_type, title, content, inquiry_status, created_at, updated_at
+        SELECT inquiry_id, u_id, inquiry_type, title, content, inquiry_status, created_at, updated_at
         FROM inquiry
         WHERE inquiry_id = #{inquiryId}
     </select>

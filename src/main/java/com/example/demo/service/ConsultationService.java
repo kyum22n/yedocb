@@ -36,7 +36,7 @@ public class ConsultationService {
             throw new IllegalArgumentException("상담 등록 요청 정보가 없습니다.");
         }
 
-        if(request.getMemberId() == null) {
+        if(request.getUId() == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
@@ -45,7 +45,7 @@ public class ConsultationService {
         }
 
         Consultation consultation = new Consultation();
-        consultation.setMemberId(request.getMemberId());
+        consultation.setUId(request.getUId());
         consultation.setTreatmentId(request.getTreatmentId());
         consultation.setConsultationMemo(request.getConsultationMemo());
         consultation.setPreferredDate(request.getPreferredDate());
@@ -55,19 +55,19 @@ public class ConsultationService {
     }
 
     // 회원별 상담 목록 조회
-    public List<ConsultationResponseDto> getConsultationsByMemberId(Integer memberId) {
+    public List<ConsultationResponseDto> getConsultationsByUId(String uId) {
 
-        if(memberId == null) {
+        if(uId == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
-        List<Consultation> consultations = consultationDao.selectConsultationsByMemberId(memberId);
+        List<Consultation> consultations = consultationDao.selectConsultationsByUId(uId);
         List<ConsultationResponseDto> listResponse = new ArrayList<>();
 
         for(Consultation consultation : consultations) {
             ConsultationResponseDto response = new ConsultationResponseDto();
             response.setConsultationId(consultation.getConsultationId());
-            response.setMemberId(consultation.getMemberId());
+            response.setUId(consultation.getUId());
             response.setReservationId(consultation.getReservationId());
             response.setTreatmentId(consultation.getTreatmentId());
             response.setConsultationStatus(consultation.getConsultationStatus());
@@ -84,17 +84,17 @@ public class ConsultationService {
     }
 
     // 상담 상세 조회
-    public ConsultationResponseDto getConsultationById(Integer consultationId, Integer memberId) {
+    public ConsultationResponseDto getConsultationById(Integer consultationId, String uId) {
 
         if(consultationId == null) {
             throw new IllegalArgumentException("상담 ID는 필수입니다.");
         }
 
-        if(memberId == null) {
+        if(uId == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
-        Consultation consultation = consultationDao.selectConsultationById(consultationId, memberId);
+        Consultation consultation = consultationDao.selectConsultationById(consultationId, uId);
 
         if(consultation == null) {
             throw new IllegalArgumentException("존재하지 않는 상담입니다.");
@@ -102,7 +102,7 @@ public class ConsultationService {
 
         ConsultationResponseDto response = new ConsultationResponseDto();
         response.setConsultationId(consultation.getConsultationId());
-        response.setMemberId(consultation.getMemberId());
+        response.setUId(consultation.getUId());
         response.setReservationId(consultation.getReservationId());
         response.setTreatmentId(consultation.getTreatmentId());
         response.setConsultationStatus(consultation.getConsultationStatus());
@@ -126,7 +126,7 @@ public class ConsultationService {
             throw new IllegalArgumentException("상담 ID는 필수입니다.");
         }
 
-        if(request.getMemberId() == null) {
+        if(request.getUId() == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
@@ -134,7 +134,7 @@ public class ConsultationService {
             throw new IllegalArgumentException("진료 항목 ID는 필수입니다.");
         }
 
-        Consultation existingConsultation = consultationDao.selectConsultationById(request.getConsultationId(), request.getMemberId());
+        Consultation existingConsultation = consultationDao.selectConsultationById(request.getConsultationId(), request.getUId());
 
         if(existingConsultation == null) {
             throw new IllegalArgumentException("존재하지 않는 상담입니다.");
@@ -142,7 +142,7 @@ public class ConsultationService {
 
         Consultation consultation = new Consultation();
         consultation.setConsultationId(request.getConsultationId());
-        consultation.setMemberId(request.getMemberId());
+        consultation.setUId(request.getUId());
         consultation.setTreatmentId(request.getTreatmentId());
         consultation.setConsultationMemo(request.getConsultationMemo());
         consultation.setPreferredDate(request.getPreferredDate());
@@ -162,16 +162,16 @@ public class ConsultationService {
             throw new IllegalArgumentException("상담 ID는 필수입니다.");
         }
 
-        if(request.getMemberId() == null) {
+        if(request.getUId() == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
-        Consultation existingConsultation = consultationDao.selectConsultationById(request.getConsultationId(), request.getMemberId());
+        Consultation existingConsultation = consultationDao.selectConsultationById(request.getConsultationId(), request.getUId());
 
         if(existingConsultation == null) {
             throw new IllegalArgumentException("존재하지 않는 상담입니다.");
         }
 
-        return consultationDao.cancelConsultation(request.getConsultationId(), request.getMemberId());
+        return consultationDao.cancelConsultation(request.getConsultationId(), request.getUId());
     }
 }

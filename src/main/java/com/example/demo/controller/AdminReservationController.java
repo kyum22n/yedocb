@@ -52,9 +52,9 @@ public class AdminReservationController {
 
     // 회원별 예약 목록 조회
     @GetMapping("/member")
-    public ResponseEntity<List<AdminReservationResponseDto>> getReservationsByMemberId(
-            @RequestParam("memberId") Integer memberId) {
-        return ResponseEntity.ok(reservationService.getReservationsByMemberId(memberId));
+    public ResponseEntity<List<AdminReservationResponseDto>> getReservationsByUId(
+            @RequestParam("uId") String uId) {
+        return ResponseEntity.ok(reservationService.getReservationsByUId(uId));
     }
 
     // 담당자별 예약 목록 조회

@@ -45,17 +45,17 @@ public class InquiryController {
 
     // 회원별 문의 목록 조회
     @GetMapping("/member")
-    public ResponseEntity<List<InquiryResponseDto>> getInquiriesByMemberId(
-            @RequestParam("memberId") Integer memberId) {
-        return ResponseEntity.ok(inquiryService.getInquiriesByMemberId(memberId));
+    public ResponseEntity<List<InquiryResponseDto>> getInquiriesByUId(
+            @RequestParam("uId") String uId) {
+        return ResponseEntity.ok(inquiryService.getInquiriesByUId(uId));
     }
 
     // 문의 상세 조회
     @GetMapping("/{inquiryId}")
     public ResponseEntity<InquiryResponseDto> getInquiryDetail(
             @PathVariable("inquiryId") Integer inquiryId,
-            @RequestParam("memberId") Integer memberId) {
-        return ResponseEntity.ok(inquiryService.getInquiryById(inquiryId, memberId));
+            @RequestParam("uId") String uId) {
+        return ResponseEntity.ok(inquiryService.getInquiryById(inquiryId, uId));
     }
 
     // 문의 수정

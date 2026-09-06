@@ -37,7 +37,7 @@ public class AdminConsultationService {
             throw new IllegalArgumentException("상담 등록 요청 정보가 없습니다.");
         }
 
-        if(request.getMemberId() == null) {
+        if(request.getUId() == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
@@ -51,7 +51,7 @@ public class AdminConsultationService {
         }
 
         Consultation consultation = new Consultation();
-        consultation.setMemberId(request.getMemberId());
+        consultation.setUId(request.getUId());
         consultation.setReservationId(request.getReservationId());
         consultation.setTreatmentId(request.getTreatmentId());
         consultation.setAdminId(request.getAdminId());
@@ -72,7 +72,7 @@ public class AdminConsultationService {
         for(Consultation consultation : consultations) {
             AdminConsultationResponseDto response = new AdminConsultationResponseDto();
             response.setConsultationId(consultation.getConsultationId());
-            response.setMemberId(consultation.getMemberId());
+            response.setUId(consultation.getUId());
             response.setReservationId(consultation.getReservationId());
             response.setTreatmentId(consultation.getTreatmentId());
             response.setAdminId(consultation.getAdminId());
@@ -90,19 +90,19 @@ public class AdminConsultationService {
     }
 
     // 회원별 상담 목록 조회
-    public List<AdminConsultationResponseDto> getConsultationsByMemberId(Integer memberId) {
+    public List<AdminConsultationResponseDto> getConsultationsByUId(String uId) {
 
-        if(memberId == null) {
+        if(uId == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
-        List<Consultation> consultations = adminConsultationDao.selectConsultationsByMemberId(memberId);
+        List<Consultation> consultations = adminConsultationDao.selectConsultationsByUId(uId);
         List<AdminConsultationResponseDto> listResponse = new ArrayList<>();
 
         for(Consultation consultation : consultations) {
             AdminConsultationResponseDto response = new AdminConsultationResponseDto();
             response.setConsultationId(consultation.getConsultationId());
-            response.setMemberId(consultation.getMemberId());
+            response.setUId(consultation.getUId());
             response.setReservationId(consultation.getReservationId());
             response.setTreatmentId(consultation.getTreatmentId());
             response.setAdminId(consultation.getAdminId());
@@ -132,7 +132,7 @@ public class AdminConsultationService {
         for(Consultation consultation : consultations) {
             AdminConsultationResponseDto response = new AdminConsultationResponseDto();
             response.setConsultationId(consultation.getConsultationId());
-            response.setMemberId(consultation.getMemberId());
+            response.setUId(consultation.getUId());
             response.setReservationId(consultation.getReservationId());
             response.setTreatmentId(consultation.getTreatmentId());
             response.setAdminId(consultation.getAdminId());
@@ -170,7 +170,7 @@ public class AdminConsultationService {
         for(Consultation consultation : consultations) {
             AdminConsultationResponseDto response = new AdminConsultationResponseDto();
             response.setConsultationId(consultation.getConsultationId());
-            response.setMemberId(consultation.getMemberId());
+            response.setUId(consultation.getUId());
             response.setReservationId(consultation.getReservationId());
             response.setTreatmentId(consultation.getTreatmentId());
             response.setAdminId(consultation.getAdminId());
@@ -202,7 +202,7 @@ public class AdminConsultationService {
 
         AdminConsultationResponseDto response = new AdminConsultationResponseDto();
         response.setConsultationId(consultation.getConsultationId());
-        response.setMemberId(consultation.getMemberId());
+        response.setUId(consultation.getUId());
         response.setReservationId(consultation.getReservationId());
         response.setTreatmentId(consultation.getTreatmentId());
         response.setAdminId(consultation.getAdminId());

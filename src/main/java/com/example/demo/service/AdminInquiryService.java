@@ -1,5 +1,7 @@
 package com.example.demo.service;
 
+import com.example.demo.exception.ResourceNotFoundException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +42,7 @@ public class AdminInquiryService {
         for(Inquiry inquiry : inquiries) {
             AdminInquiryResponseDto response = new AdminInquiryResponseDto();
             response.setInquiryId(inquiry.getInquiryId());
-            response.setMemberId(inquiry.getMemberId());
+            response.setUId(inquiry.getUId());
             response.setInquiryType(inquiry.getInquiryType());
             response.setTitle(inquiry.getTitle());
             response.setContent(inquiry.getContent());
@@ -67,19 +69,19 @@ public class AdminInquiryService {
     }
 
     // 회원별 문의 목록 조회
-    public List<AdminInquiryResponseDto> getInquiriesByMemberId(Integer memberId) {
+    public List<AdminInquiryResponseDto> getInquiriesByUId(String uId) {
 
-        if(memberId == null) {
+        if(uId == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
-        List<Inquiry> inquiries = adminInquiryDao.selectInquiriesByMemberId(memberId);
+        List<Inquiry> inquiries = adminInquiryDao.selectInquiriesByUId(uId);
         List<AdminInquiryResponseDto> listResponse = new ArrayList<>();
 
         for(Inquiry inquiry : inquiries) {
             AdminInquiryResponseDto response = new AdminInquiryResponseDto();
             response.setInquiryId(inquiry.getInquiryId());
-            response.setMemberId(inquiry.getMemberId());
+            response.setUId(inquiry.getUId());
             response.setInquiryType(inquiry.getInquiryType());
             response.setTitle(inquiry.getTitle());
             response.setContent(inquiry.getContent());
@@ -118,7 +120,7 @@ public class AdminInquiryService {
         for(Inquiry inquiry : inquiries) {
             AdminInquiryResponseDto response = new AdminInquiryResponseDto();
             response.setInquiryId(inquiry.getInquiryId());
-            response.setMemberId(inquiry.getMemberId());
+            response.setUId(inquiry.getUId());
             response.setInquiryType(inquiry.getInquiryType());
             response.setTitle(inquiry.getTitle());
             response.setContent(inquiry.getContent());
@@ -149,7 +151,7 @@ public class AdminInquiryService {
         for(Inquiry inquiry : inquiries) {
             AdminInquiryResponseDto response = new AdminInquiryResponseDto();
             response.setInquiryId(inquiry.getInquiryId());
-            response.setMemberId(inquiry.getMemberId());
+            response.setUId(inquiry.getUId());
             response.setInquiryType(inquiry.getInquiryType());
             response.setTitle(inquiry.getTitle());
             response.setContent(inquiry.getContent());
@@ -173,12 +175,12 @@ public class AdminInquiryService {
         Inquiry inquiry = adminInquiryDao.selectInquiryById(inquiryId);
 
         if(inquiry == null) {
-            throw new IllegalArgumentException("존재하지 않는 문의입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 문의입니다.");
         }
 
         AdminInquiryResponseDto response = new AdminInquiryResponseDto();
         response.setInquiryId(inquiry.getInquiryId());
-        response.setMemberId(inquiry.getMemberId());
+        response.setUId(inquiry.getUId());
         response.setInquiryType(inquiry.getInquiryType());
         response.setTitle(inquiry.getTitle());
         response.setContent(inquiry.getContent());
@@ -223,7 +225,7 @@ public class AdminInquiryService {
         Inquiry existingInquiry = adminInquiryDao.selectInquiryById(request.getInquiryId());
 
         if(existingInquiry == null) {
-            throw new IllegalArgumentException("존재하지 않는 문의입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 문의입니다.");
         }
 
         Inquiry inquiry = new Inquiry();
@@ -255,7 +257,7 @@ public class AdminInquiryService {
         Inquiry existingInquiry = adminInquiryDao.selectInquiryById(request.getInquiryId());
 
         if(existingInquiry == null) {
-            throw new IllegalArgumentException("존재하지 않는 문의입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 문의입니다.");
         }
 
         InquiryAnswer inquiryAnswer = new InquiryAnswer();
@@ -291,7 +293,7 @@ public class AdminInquiryService {
         InquiryAnswer existingAnswer = adminInquiryDao.selectAnswerById(request.getAnswerId());
 
         if(existingAnswer == null) {
-            throw new IllegalArgumentException("존재하지 않는 답변입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 답변입니다.");
         }
 
         InquiryAnswer inquiryAnswer = new InquiryAnswer();
@@ -311,7 +313,7 @@ public class AdminInquiryService {
         InquiryAnswer existingAnswer = adminInquiryDao.selectAnswerById(answerId);
 
         if(existingAnswer == null) {
-            throw new IllegalArgumentException("존재하지 않는 답변입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 답변입니다.");
         }
 
         int result = adminInquiryDao.deleteInquiryAnswer(answerId);
@@ -334,7 +336,7 @@ public class AdminInquiryService {
         Inquiry existingInquiry = adminInquiryDao.selectInquiryById(inquiryId);
 
         if(existingInquiry == null) {
-            throw new IllegalArgumentException("존재하지 않는 문의입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 문의입니다.");
         }
 
         adminInquiryDao.deleteAnswerByInquiryId(inquiryId);

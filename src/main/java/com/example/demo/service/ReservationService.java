@@ -1,5 +1,7 @@
 package com.example.demo.service;
 
+import com.example.demo.exception.ResourceNotFoundException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,7 +38,7 @@ public class ReservationService {
             throw new IllegalArgumentException("예약 등록 요청 정보가 없습니다.");
         }
 
-        if(request.getMemberId() == null) {
+        if(request.getUId() == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
@@ -53,7 +55,7 @@ public class ReservationService {
         }
 
         Reservation reservation = new Reservation();
-        reservation.setMemberId(request.getMemberId());
+        reservation.setUId(request.getUId());
         reservation.setTreatmentId(request.getTreatmentId());
         reservation.setReservationDate(request.getReservationDate());
         reservation.setReservationTime(request.getReservationTime());
@@ -63,19 +65,19 @@ public class ReservationService {
     }
 
     // 회원별 예약 목록 조회
-    public List<ReservationResponseDto> getReservationsByMemberId(Integer memberId) {
+    public List<ReservationResponseDto> getReservationsByUId(String uId) {
 
-        if(memberId == null) {
+        if(uId == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
-        List<Reservation> reservations = reservationDao.selectReservationsByMemberId(memberId);
+        List<Reservation> reservations = reservationDao.selectReservationsByUId(uId);
         List<ReservationResponseDto> listResponse = new ArrayList<>();
 
         for(Reservation reservation : reservations) {
             ReservationResponseDto response = new ReservationResponseDto();
             response.setReservationId(reservation.getReservationId());
-            response.setMemberId(reservation.getMemberId());
+            response.setUId(reservation.getUId());
             response.setTreatmentId(reservation.getTreatmentId());
             response.setReservationDate(reservation.getReservationDate());
             response.setReservationTime(reservation.getReservationTime());
@@ -91,25 +93,25 @@ public class ReservationService {
     }
 
     // 예약 상세 조회
-    public ReservationResponseDto getReservationById(Integer reservationId, Integer memberId) {
+    public ReservationResponseDto getReservationById(Integer reservationId, String uId) {
 
         if(reservationId == null) {
             throw new IllegalArgumentException("예약 ID는 필수입니다.");
         }
 
-        if(memberId == null) {
+        if(uId == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
-        Reservation reservation = reservationDao.selectReservationById(reservationId, memberId);
+        Reservation reservation = reservationDao.selectReservationById(reservationId, uId);
 
         if(reservation == null) {
-            throw new IllegalArgumentException("존재하지 않는 예약입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 예약입니다.");
         }
 
         ReservationResponseDto response = new ReservationResponseDto();
         response.setReservationId(reservation.getReservationId());
-        response.setMemberId(reservation.getMemberId());
+        response.setUId(reservation.getUId());
         response.setTreatmentId(reservation.getTreatmentId());
         response.setReservationDate(reservation.getReservationDate());
         response.setReservationTime(reservation.getReservationTime());
@@ -132,7 +134,7 @@ public class ReservationService {
             throw new IllegalArgumentException("예약 ID는 필수입니다.");
         }
 
-        if(request.getMemberId() == null) {
+        if(request.getUId() == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
@@ -148,15 +150,15 @@ public class ReservationService {
             throw new IllegalArgumentException("예약 시간은 필수입니다.");
         }
 
-        Reservation existingReservation = reservationDao.selectReservationById(request.getReservationId(), request.getMemberId());
+        Reservation existingReservation = reservationDao.selectReservationById(request.getReservationId(), request.getUId());
 
         if(existingReservation == null) {
-            throw new IllegalArgumentException("존재하지 않는 예약입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 예약입니다.");
         }
 
         Reservation reservation = new Reservation();
         reservation.setReservationId(request.getReservationId());
-        reservation.setMemberId(request.getMemberId());
+        reservation.setUId(request.getUId());
         reservation.setTreatmentId(request.getTreatmentId());
         reservation.setReservationDate(request.getReservationDate());
         reservation.setReservationTime(request.getReservationTime());
@@ -176,16 +178,16 @@ public class ReservationService {
             throw new IllegalArgumentException("예약 ID는 필수입니다.");
         }
 
-        if(request.getMemberId() == null) {
+        if(request.getUId() == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
-        Reservation existingReservation = reservationDao.selectReservationById(request.getReservationId(), request.getMemberId());
+        Reservation existingReservation = reservationDao.selectReservationById(request.getReservationId(), request.getUId());
 
         if(existingReservation == null) {
-            throw new IllegalArgumentException("존재하지 않는 예약입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 예약입니다.");
         }
 
-        return reservationDao.cancelReservation(request.getReservationId(), request.getMemberId());
+        return reservationDao.cancelReservation(request.getReservationId(), request.getUId());
     }
 }

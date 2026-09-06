@@ -24,16 +24,16 @@ public interface ReservationDao {
     public int insertReservation(Reservation reservation);
 
     // 회원별 예약 목록 조회
-    public List<Reservation> selectReservationsByMemberId(Integer memberId);
+    public List<Reservation> selectReservationsByUId(String uId);
 
     // 예약 상세 조회
     public Reservation selectReservationById(@Param("reservationId") Integer reservationId,
-                                             @Param("memberId") Integer memberId);
+                                             @Param("uId") String uId);
 
     // 예약 수정
     public int updateReservation(Reservation reservation);
 
     // 예약 취소
     public int cancelReservation(@Param("reservationId") Integer reservationId,
-                                 @Param("memberId") Integer memberId);
+                                 @Param("uId") String uId);
 }

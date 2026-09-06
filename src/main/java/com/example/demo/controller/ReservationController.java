@@ -44,17 +44,17 @@ public class ReservationController {
 
     // 회원별 예약 목록 조회
     @GetMapping("/member")
-    public ResponseEntity<List<ReservationResponseDto>> getReservationsByMemberId(
-            @RequestParam("memberId") Integer memberId) {
-        return ResponseEntity.ok(reservationService.getReservationsByMemberId(memberId));
+    public ResponseEntity<List<ReservationResponseDto>> getReservationsByUId(
+            @RequestParam("uId") String uId) {
+        return ResponseEntity.ok(reservationService.getReservationsByUId(uId));
     }
 
     // 예약 상세 조회
     @GetMapping("/{reservationId}")
     public ResponseEntity<ReservationResponseDto> getReservationDetail(
             @PathVariable("reservationId") Integer reservationId,
-            @RequestParam("memberId") Integer memberId) {
-        return ResponseEntity.ok(reservationService.getReservationById(reservationId, memberId));
+            @RequestParam("uId") String uId) {
+        return ResponseEntity.ok(reservationService.getReservationById(reservationId, uId));
     }
 
     // 예약 정보 수정

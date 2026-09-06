@@ -21,7 +21,7 @@ public class AdminConsultationResponseDto {
     // 상담 ID
     private Integer consultationId;
     // 사용자 ID
-    private Integer memberId;
+    private String uId;
     // 예약 ID
     private Integer reservationId;
     // 진료 항목 ID

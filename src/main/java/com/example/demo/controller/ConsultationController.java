@@ -44,17 +44,17 @@ public class ConsultationController {
 
     // 회원별 상담 목록 조회
     @GetMapping("/member")
-    public ResponseEntity<List<ConsultationResponseDto>> getConsultationsByMemberId(
-            @RequestParam("memberId") Integer memberId) {
-        return ResponseEntity.ok(consultationService.getConsultationsByMemberId(memberId));
+    public ResponseEntity<List<ConsultationResponseDto>> getConsultationsByUId(
+            @RequestParam("uId") String uId) {
+        return ResponseEntity.ok(consultationService.getConsultationsByUId(uId));
     }
 
     // 상담 상세 조회
     @GetMapping("/{consultationId}")
     public ResponseEntity<ConsultationResponseDto> getConsultationDetail(
             @PathVariable("consultationId") Integer consultationId,
-            @RequestParam("memberId") Integer memberId) {
-        return ResponseEntity.ok(consultationService.getConsultationById(consultationId, memberId));
+            @RequestParam("uId") String uId) {
+        return ResponseEntity.ok(consultationService.getConsultationById(consultationId, uId));
     }
 
     // 상담 정보 수정

@@ -10,23 +10,23 @@
         keyProperty="reservationId"
     > 
         INSERT INTO reservation 
-            (member_id, treatment_id, reservation_date, reservation_time, member_memo, created_at, updated_at) 
-        VALUES (#{memberId}, #{treatmentId}, #{reservationDate}, #{reservationTime}, #{memberMemo}, NOW(), NOW()) 
+            (u_id, treatment_id, reservation_date, reservation_time, member_memo, created_at, updated_at) 
+        VALUES (#{uId}, #{treatmentId}, #{reservationDate}, #{reservationTime}, #{memberMemo}, NOW(), NOW()) 
     </insert>
 
     <!--예약 내역 조회-->
-    <select id="selectReservationsByMemberId" resultType="com.example.demo.entity.Reservation">
-        SELECT reservation_id, member_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
+    <select id="selectReservationsByUId" resultType="com.example.demo.entity.Reservation">
+        SELECT reservation_id, u_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
         FROM reservation
-        WHERE member_id = #{memberId}
+        WHERE u_id = #{uId}
         ORDER BY reservation_id
     </select>
 
     <!--예약 단일 조회-->
     <select id="selectReservationById" resultType="com.example.demo.entity.Reservation">
-        SELECT reservation_id, member_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
+        SELECT reservation_id, u_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at
         FROM reservation
-        WHERE reservation_id = #{reservationId} AND member_id = #{memberId}
+        WHERE reservation_id = #{reservationId} AND u_id = #{uId}
     </select>
 
     <!--예약 수정-->
@@ -37,14 +37,14 @@
             reservation_time = #{reservationTime},
             member_memo = #{memberMemo},
             updated_at = NOW()
-        WHERE reservation_id = #{reservationId} AND member_id = #{memberId}
+        WHERE reservation_id = #{reservationId} AND u_id = #{uId}
     </update>
 
     <update id="cancelReservation">
         UPDATE reservation
         SET reservation_status = 'CANCELED',
             updated_at = NOW()
-        WHERE reservation_id = #{reservationId} AND member_id = #{memberId}
+        WHERE reservation_id = #{reservationId} AND u_id = #{uId}
     </update>
 
 </mapper>

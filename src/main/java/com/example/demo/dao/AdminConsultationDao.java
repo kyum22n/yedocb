@@ -26,7 +26,7 @@ public interface AdminConsultationDao {
     public List<Consultation> selectAllConsultations();
 
     // 회원별 상담 목록 조회
-    public List<Consultation> selectConsultationsByMemberId(Integer memberId);
+    public List<Consultation> selectConsultationsByUId(String uId);
 
     // 담당자별 상담 목록 조회
     public List<Consultation> selectConsultationsByAdminId(Integer adminId);

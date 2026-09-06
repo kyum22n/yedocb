@@ -15,7 +15,7 @@ import lombok.Data;
 @Data
 public class InquiryCreateRequestDto {
     // 문의자 ID
-    private Integer memberId;
+    private String uId;
     // 문의 유형
     private String inquiryType;
     // 문의 제목

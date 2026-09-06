@@ -1,5 +1,7 @@
 package com.example.demo.service;
 
+import com.example.demo.exception.ResourceNotFoundException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,7 +39,7 @@ public class AdminReservationService {
             throw new IllegalArgumentException("예약 등록 요청 정보가 없습니다.");
         }
 
-        if(request.getMemberId() == null) {
+        if(request.getUId() == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
@@ -70,7 +72,7 @@ public class AdminReservationService {
         }
 
         Reservation reservation = new Reservation();
-        reservation.setMemberId(request.getMemberId());
+        reservation.setUId(request.getUId());
         reservation.setTreatmentId(request.getTreatmentId());
         reservation.setAdminId(request.getAdminId());
         reservation.setReservationDate(request.getReservationDate());
@@ -92,7 +94,7 @@ public class AdminReservationService {
         for(Reservation reservation : reservations) {
             AdminReservationResponseDto response = new AdminReservationResponseDto();
             response.setReservationId(reservation.getReservationId());
-            response.setMemberId(reservation.getMemberId());
+            response.setUId(reservation.getUId());
             response.setTreatmentId(reservation.getTreatmentId());
             response.setAdminId(reservation.getAdminId());
             response.setReservationDate(reservation.getReservationDate());
@@ -111,19 +113,19 @@ public class AdminReservationService {
     }
 
     // 회원별 예약 목록 조회
-    public List<AdminReservationResponseDto> getReservationsByMemberId(Integer memberId) {
+    public List<AdminReservationResponseDto> getReservationsByUId(String uId) {
 
-        if(memberId == null) {
+        if(uId == null) {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
-        List<Reservation> reservations = adminReservationDao.selectReservationsByMemberId(memberId);
+        List<Reservation> reservations = adminReservationDao.selectReservationsByUId(uId);
         List<AdminReservationResponseDto> listResponse = new ArrayList<>();
 
         for(Reservation reservation : reservations) {
             AdminReservationResponseDto response = new AdminReservationResponseDto();
             response.setReservationId(reservation.getReservationId());
-            response.setMemberId(reservation.getMemberId());
+            response.setUId(reservation.getUId());
             response.setTreatmentId(reservation.getTreatmentId());
             response.setAdminId(reservation.getAdminId());
             response.setReservationDate(reservation.getReservationDate());
@@ -154,7 +156,7 @@ public class AdminReservationService {
         for(Reservation reservation : reservations) {
             AdminReservationResponseDto response = new AdminReservationResponseDto();
             response.setReservationId(reservation.getReservationId());
-            response.setMemberId(reservation.getMemberId());
+            response.setUId(reservation.getUId());
             response.setTreatmentId(reservation.getTreatmentId());
             response.setAdminId(reservation.getAdminId());
             response.setReservationDate(reservation.getReservationDate());
@@ -193,7 +195,7 @@ public class AdminReservationService {
         for(Reservation reservation : reservations) {
             AdminReservationResponseDto response = new AdminReservationResponseDto();
             response.setReservationId(reservation.getReservationId());
-            response.setMemberId(reservation.getMemberId());
+            response.setUId(reservation.getUId());
             response.setTreatmentId(reservation.getTreatmentId());
             response.setAdminId(reservation.getAdminId());
             response.setReservationDate(reservation.getReservationDate());
@@ -230,7 +232,7 @@ public class AdminReservationService {
         for(Reservation reservation : reservations) {
             AdminReservationResponseDto response = new AdminReservationResponseDto();
             response.setReservationId(reservation.getReservationId());
-            response.setMemberId(reservation.getMemberId());
+            response.setUId(reservation.getUId());
             response.setTreatmentId(reservation.getTreatmentId());
             response.setAdminId(reservation.getAdminId());
             response.setReservationDate(reservation.getReservationDate());
@@ -258,12 +260,12 @@ public class AdminReservationService {
         Reservation reservation = adminReservationDao.selectReservationById(reservationId);
 
         if(reservation == null) {
-            throw new IllegalArgumentException("존재하지 않는 예약입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 예약입니다.");
         }
 
         AdminReservationResponseDto response = new AdminReservationResponseDto();
         response.setReservationId(reservation.getReservationId());
-        response.setMemberId(reservation.getMemberId());
+        response.setUId(reservation.getUId());
         response.setTreatmentId(reservation.getTreatmentId());
         response.setAdminId(reservation.getAdminId());
         response.setReservationDate(reservation.getReservationDate());
@@ -316,7 +318,7 @@ public class AdminReservationService {
         Reservation existingReservation = adminReservationDao.selectReservationById(request.getReservationId());
 
         if(existingReservation == null) {
-            throw new IllegalArgumentException("존재하지 않는 예약입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 예약입니다.");
         }
 
         Reservation reservation = new Reservation();
@@ -358,7 +360,7 @@ public class AdminReservationService {
         Reservation existingReservation = adminReservationDao.selectReservationById(request.getReservationId());
 
         if(existingReservation == null) {
-            throw new IllegalArgumentException("존재하지 않는 예약입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 예약입니다.");
         }
 
         Reservation reservation = new Reservation();
@@ -394,7 +396,7 @@ public class AdminReservationService {
         Reservation existingReservation = adminReservationDao.selectReservationById(request.getReservationId());
 
         if(existingReservation == null) {
-            throw new IllegalArgumentException("존재하지 않는 예약입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 예약입니다.");
         }
 
         Reservation reservation = new Reservation();
@@ -414,7 +416,7 @@ public class AdminReservationService {
         Reservation existingReservation = adminReservationDao.selectReservationById(reservationId);
 
         if(existingReservation == null) {
-            throw new IllegalArgumentException("존재하지 않는 예약입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 예약입니다.");
         }
 
         return adminReservationDao.deleteReservation(reservationId);
