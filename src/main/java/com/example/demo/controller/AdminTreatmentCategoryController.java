@@ -18,7 +18,6 @@ import java.util.List;
 import com.example.demo.service.AdminTreatmentCategoryService;
 import com.example.demo.dto.request.treatment.CategoryCreateRequestDto;
 import com.example.demo.dto.request.treatment.CategoryUpdateRequestDto;
-import com.example.demo.dto.request.treatment.CategoryDeleteRequestDto;
 import com.example.demo.dto.response.treatment.CategoryResponseDto;
 
 /**

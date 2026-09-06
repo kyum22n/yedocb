@@ -1,5 +1,9 @@
 package com.example.demo.service;
 
+import com.example.demo.exception.DuplicateResourceException;
+
+import com.example.demo.exception.ResourceNotFoundException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -40,7 +44,7 @@ public class AdminService {
         Admin admin = adminDao.selectAdminById(adminId);
 
         if(admin == null) {
-            throw new IllegalArgumentException("존재하지 않는 관리자입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 관리자입니다.");
         }
 
         AdminDetailResponseDto response = new AdminDetailResponseDto();
@@ -50,9 +54,9 @@ public class AdminService {
         response.setAdminEmail(admin.getAdminEmail());
         response.setAdminPhone(admin.getAdminPhone());
         response.setAdminRole(admin.getAdminRole());
-        response.setAdminCreatedAt(admin.getAdminCreatedAt());
-        response.setAdminCreatedBy(admin.getAdminCreatedBy());
-        response.setAdminUpdatedAt(admin.getAdminUpdatedAt());
+        response.setCreatedBy(admin.getCreatedBy());
+        response.setCreatedAt(admin.getCreatedAt());
+        response.setUpdatedAt(admin.getUpdatedAt());
 
         return response;
     }
@@ -64,7 +68,7 @@ public class AdminService {
         Admin existingAdmin = adminDao.selectAdminByLoginId(admin.getAdminLoginId());
         
         if(existingAdmin != null) {
-            throw new IllegalArgumentException("이미 사용 중인 관리자 로그인 ID입니다.");
+            throw new DuplicateResourceException("이미 사용 중인 관리자 로그인 ID입니다.");
         }
 
         // 패스워드 암호화
@@ -83,16 +87,10 @@ public class AdminService {
         Admin existingAdmin = adminDao.selectAdminById(request.getAdminId());
 
         if(existingAdmin == null) {
-            throw new IllegalArgumentException("존재하지 않는 관리자입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 관리자입니다.");
         }
 
-        Admin admin = new Admin();
-        admin.setAdminId(request.getAdminId());
-        admin.setAdminName(request.getAdminName());
-        admin.setAdminEmail(request.getAdminEmail());
-        admin.setAdminPhone(request.getAdminPhone());
-
-        return adminDao.updateAdmin(admin);
+        return adminDao.updateAdmin(request);
     }
 
     // 관리자 삭제
@@ -100,7 +98,7 @@ public class AdminService {
         Admin existingAdmin = adminDao.selectAdminById(adminId);
 
         if(existingAdmin == null) {
-            throw new IllegalArgumentException("존재하지 않는 관리자입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 관리자입니다.");
         }
 
         return adminDao.deleteAdmin(adminId);

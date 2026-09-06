@@ -1,5 +1,7 @@
 package com.example.demo.dto.response.admin;
 
+import java.time.LocalDateTime;
+
 import lombok.Data;
 
 /**
@@ -29,7 +31,7 @@ public class AdminDetailResponseDto {
     // 생성자
     private String createdBy;
     // 생성일
-    private String createdAt;
+    private LocalDateTime createdAt;
     // 수정일
-    private String updatedAt;
+    private LocalDateTime updatedAt;
 }
