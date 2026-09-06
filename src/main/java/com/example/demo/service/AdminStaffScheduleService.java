@@ -12,6 +12,8 @@ import com.example.demo.dto.request.schedule.AdminStaffScheduleCreateRequestDto;
 import com.example.demo.dto.request.schedule.AdminStaffScheduleUpdateRequestDto;
 import com.example.demo.dto.response.schedule.AdminStaffScheduleResponseDto;
 import com.example.demo.entity.StaffSchedule;
+import com.example.demo.exception.DuplicateResourceException;
+import com.example.demo.exception.ResourceNotFoundException;
 
 /**
  * 파일명: AdminStaffScheduleService.java
@@ -21,6 +23,8 @@ import com.example.demo.entity.StaffSchedule;
  * 수정 이력
  * ===============================
  * 2026-05-25 | 규민 | 클래스 생성
+ * 2026-09-06 | 리팩토링 | 동일 관리자+날짜 중복 일정 등록 방지 검증 추가 (DuplicateResourceException),
+ *                        "존재하지 않는 직원 일정입니다" IllegalArgumentException -> ResourceNotFoundException 교체 (Phase 2)
  */
 
 @Service
@@ -50,6 +54,13 @@ public class AdminStaffScheduleService {
 
         if(!request.getScheduleType().equals("WORK") && !request.getScheduleType().equals("OFF")) {
             throw new IllegalArgumentException("올바르지 않은 일정 유형입니다.");
+        }
+
+        StaffSchedule duplicateSchedule = staffScheduleDao.selectStaffScheduleByAdminIdAndDate(
+                request.getAdminId(), request.getScheduleDate());
+
+        if(duplicateSchedule != null) {
+            throw new DuplicateResourceException("이미 해당 날짜에 등록된 직원 일정이 존재합니다.");
         }
 
         StaffSchedule staffSchedule = new StaffSchedule();
@@ -175,7 +186,7 @@ public class AdminStaffScheduleService {
         StaffSchedule schedule = staffScheduleDao.selectStaffScheduleById(scheduleId);
 
         if(schedule == null) {
-            throw new IllegalArgumentException("존재하지 않는 직원 일정입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 직원 일정입니다.");
         }
 
         AdminStaffScheduleResponseDto response = new AdminStaffScheduleResponseDto();
@@ -220,7 +231,14 @@ public class AdminStaffScheduleService {
         StaffSchedule existingSchedule = staffScheduleDao.selectStaffScheduleById(request.getScheduleId());
 
         if(existingSchedule == null) {
-            throw new IllegalArgumentException("존재하지 않는 직원 일정입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 직원 일정입니다.");
+        }
+
+        StaffSchedule duplicateSchedule = staffScheduleDao.selectStaffScheduleByAdminIdAndDate(
+                request.getAdminId(), request.getScheduleDate());
+
+        if(duplicateSchedule != null && !duplicateSchedule.getScheduleId().equals(request.getScheduleId())) {
+            throw new DuplicateResourceException("이미 해당 날짜에 등록된 직원 일정이 존재합니다.");
         }
 
         StaffSchedule staffSchedule = new StaffSchedule();
@@ -243,7 +261,7 @@ public class AdminStaffScheduleService {
         StaffSchedule existingSchedule = staffScheduleDao.selectStaffScheduleById(scheduleId);
 
         if(existingSchedule == null) {
-            throw new IllegalArgumentException("존재하지 않는 직원 일정입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 직원 일정입니다.");
         }
 
         return staffScheduleDao.deleteStaffSchedule(scheduleId);

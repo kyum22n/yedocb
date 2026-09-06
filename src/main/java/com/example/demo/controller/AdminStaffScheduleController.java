@@ -21,6 +21,8 @@ import com.example.demo.dto.request.schedule.AdminStaffScheduleUpdateRequestDto;
 import com.example.demo.dto.response.schedule.AdminStaffScheduleResponseDto;
 import com.example.demo.service.AdminStaffScheduleService;
 
+import jakarta.validation.Valid;
+
 /**
  * 파일명: AdminStaffScheduleController.java
  * 설명: 관리자용 직원 일정 관련 controller
@@ -40,7 +42,7 @@ public class AdminStaffScheduleController {
 
     // 직원 일정 등록
     @PostMapping("/register")
-    public ResponseEntity<Integer> registerStaffSchedule(@RequestBody AdminStaffScheduleCreateRequestDto request) {
+    public ResponseEntity<Integer> registerStaffSchedule(@Valid @RequestBody AdminStaffScheduleCreateRequestDto request) {
         return ResponseEntity.ok(staffScheduleService.createStaffSchedule(request));
     }
 
@@ -80,7 +82,7 @@ public class AdminStaffScheduleController {
 
     // 직원 일정 수정
     @PutMapping("/update")
-    public ResponseEntity<Integer> updateStaffSchedule(@RequestBody AdminStaffScheduleUpdateRequestDto request) {
+    public ResponseEntity<Integer> updateStaffSchedule(@Valid @RequestBody AdminStaffScheduleUpdateRequestDto request) {
         return ResponseEntity.ok(staffScheduleService.modifyStaffSchedule(request));
     }
 

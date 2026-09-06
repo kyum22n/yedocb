@@ -2,6 +2,8 @@ package com.example.demo.dto.request.schedule;
 
 import java.time.LocalDate;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -17,10 +19,13 @@ import lombok.Data;
 @Data
 public class AdminStaffScheduleCreateRequestDto {
     // 관리자 ID
+    @NotNull
     private Integer adminId;
     // 일정 날짜
+    @NotNull
     private LocalDate scheduleDate;
     // 일정 유형
+    @NotBlank
     private String scheduleType;
     // 일정 메모
     private String memo;

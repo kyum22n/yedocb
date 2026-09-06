@@ -52,6 +52,14 @@
         WHERE schedule_id = #{scheduleId}
     </select>
 
+    <!--관리자ID + 날짜로 직원 일정 조회 (중복 등록 검증용)-->
+    <select id="selectStaffScheduleByAdminIdAndDate" resultType="com.example.demo.entity.StaffSchedule">
+        SELECT schedule_id, admin_id, schedule_date, schedule_type, memo, created_at, updated_at
+        FROM staff_schedule
+        WHERE admin_id = #{adminId}
+          AND schedule_date = #{scheduleDate}
+    </select>
+
     <!--직원 일정 수정-->
     <update id="updateStaffSchedule" parameterType="com.example.demo.entity.StaffSchedule">
         UPDATE staff_schedule

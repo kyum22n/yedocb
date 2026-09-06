@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import com.example.demo.entity.StaffSchedule;
 
@@ -37,6 +38,11 @@ public interface AdminStaffScheduleDao {
 
     // 직원 일정 상세 조회
     public StaffSchedule selectStaffScheduleById(Integer scheduleId);
+
+    // 관리자ID + 날짜로 직원 일정 조회 (중복 등록 검증용)
+    public StaffSchedule selectStaffScheduleByAdminIdAndDate(
+            @Param("adminId") Integer adminId,
+            @Param("scheduleDate") LocalDate scheduleDate);
 
     // 직원 일정 수정
     public int updateStaffSchedule(StaffSchedule staffSchedule);
