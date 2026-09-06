@@ -32,8 +32,9 @@ public class AdminReservationService {
     @Autowired
     private AdminReservationDao adminReservationDao;
 
-    // 예약 등록
-    public int createReservation(AdminReservationCreateRequestDto request) {
+    // 예약 등록 (생성된 예약의 PK를 반환 - insert row count 아님. 상담->예약 전환 시
+    // 이 ID를 AdminConsultationConvertRequestDto.reservationId에 사용한다)
+    public Integer createReservation(AdminReservationCreateRequestDto request) {
 
         if(request == null) {
             throw new IllegalArgumentException("예약 등록 요청 정보가 없습니다.");
@@ -82,7 +83,8 @@ public class AdminReservationService {
         reservation.setAdminMemo(request.getAdminMemo());
         reservation.setPmsSyncStatus(request.getPmsSyncStatus());
 
-        return adminReservationDao.insertReservation(reservation);
+        adminReservationDao.insertReservation(reservation);
+        return reservation.getReservationId();
     }
 
     // 예약 목록 조회

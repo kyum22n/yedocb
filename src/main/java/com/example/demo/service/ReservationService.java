@@ -34,8 +34,8 @@ public class ReservationService {
     @Autowired
     private ReservationDao reservationDao;
 
-    // 예약 등록
-    public int createReservation(ReservationCreateRequestDto request) {
+    // 예약 등록 (생성된 예약의 PK를 반환 - insert row count 아님)
+    public Integer createReservation(ReservationCreateRequestDto request) {
 
         if(request == null) {
             throw new IllegalArgumentException("예약 등록 요청 정보가 없습니다.");
@@ -68,7 +68,8 @@ public class ReservationService {
         reservation.setReservationTime(request.getReservationTime());
         reservation.setMemberMemo(request.getMemberMemo());
 
-        return reservationDao.insertReservation(reservation);
+        reservationDao.insertReservation(reservation);
+        return reservation.getReservationId();
     }
 
     // 예약 마감 시간대 조회 (특정 날짜에 이미 예약이 차있는 시간 목록 - 예약 폼에서 비활성화용)
