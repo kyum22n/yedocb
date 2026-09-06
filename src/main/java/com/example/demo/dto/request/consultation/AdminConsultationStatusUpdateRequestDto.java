@@ -1,5 +1,7 @@
 package com.example.demo.dto.request.consultation;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -15,10 +17,12 @@ import lombok.Data;
 @Data
 public class AdminConsultationStatusUpdateRequestDto {
     // 상담 ID
+    @NotNull
     private Integer consultationId;
     // 담당자 ID
     private Integer adminId;
     // 상담 처리 상태
+    @NotBlank
     private String consultationStatus;
     // 상담 메모
     private String consultationMemo;

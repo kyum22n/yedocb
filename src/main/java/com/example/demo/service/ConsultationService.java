@@ -1,7 +1,7 @@
 package com.example.demo.service;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -12,6 +12,7 @@ import com.example.demo.dto.request.consultation.ConsultationCreateRequestDto;
 import com.example.demo.dto.request.consultation.ConsultationUpdateRequestDto;
 import com.example.demo.dto.response.consultation.ConsultationResponseDto;
 import com.example.demo.entity.Consultation;
+import com.example.demo.exception.ResourceNotFoundException;
 
 /**
  * 파일명: ConsultationService.java
@@ -21,6 +22,8 @@ import com.example.demo.entity.Consultation;
  * 수정 이력
  * ===============================
  * 2026-05-16 | 규민 | 클래스 생성
+ * 2026-09-06 | 리팩토링 | "존재하지 않는 상담입니다" -> ResourceNotFoundException 교체,
+ *                        응답 DTO 매핑을 ConsultationResponseDto.from(entity) 정적 팩토리 방식으로 변경 (Phase 2)
  */
 
 @Service
@@ -61,26 +64,9 @@ public class ConsultationService {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
-        List<Consultation> consultations = consultationDao.selectConsultationsByUId(uId);
-        List<ConsultationResponseDto> listResponse = new ArrayList<>();
-
-        for(Consultation consultation : consultations) {
-            ConsultationResponseDto response = new ConsultationResponseDto();
-            response.setConsultationId(consultation.getConsultationId());
-            response.setUId(consultation.getUId());
-            response.setReservationId(consultation.getReservationId());
-            response.setTreatmentId(consultation.getTreatmentId());
-            response.setConsultationStatus(consultation.getConsultationStatus());
-            response.setConsultationMemo(consultation.getConsultationMemo());
-            response.setPreferredDate(consultation.getPreferredDate());
-            response.setPreferredTime(consultation.getPreferredTime());
-            response.setCreatedAt(consultation.getCreatedAt());
-            response.setUpdatedAt(consultation.getUpdatedAt());
-
-            listResponse.add(response);
-        }
-
-        return listResponse;
+        return consultationDao.selectConsultationsByUId(uId).stream()
+                .map(ConsultationResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     // 상담 상세 조회
@@ -97,22 +83,10 @@ public class ConsultationService {
         Consultation consultation = consultationDao.selectConsultationById(consultationId, uId);
 
         if(consultation == null) {
-            throw new IllegalArgumentException("존재하지 않는 상담입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 상담입니다.");
         }
 
-        ConsultationResponseDto response = new ConsultationResponseDto();
-        response.setConsultationId(consultation.getConsultationId());
-        response.setUId(consultation.getUId());
-        response.setReservationId(consultation.getReservationId());
-        response.setTreatmentId(consultation.getTreatmentId());
-        response.setConsultationStatus(consultation.getConsultationStatus());
-        response.setConsultationMemo(consultation.getConsultationMemo());
-        response.setPreferredDate(consultation.getPreferredDate());
-        response.setPreferredTime(consultation.getPreferredTime());
-        response.setCreatedAt(consultation.getCreatedAt());
-        response.setUpdatedAt(consultation.getUpdatedAt());
-
-        return response;
+        return ConsultationResponseDto.from(consultation);
     }
 
     // 상담 정보 수정
@@ -137,7 +111,7 @@ public class ConsultationService {
         Consultation existingConsultation = consultationDao.selectConsultationById(request.getConsultationId(), request.getUId());
 
         if(existingConsultation == null) {
-            throw new IllegalArgumentException("존재하지 않는 상담입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 상담입니다.");
         }
 
         Consultation consultation = new Consultation();
@@ -169,7 +143,7 @@ public class ConsultationService {
         Consultation existingConsultation = consultationDao.selectConsultationById(request.getConsultationId(), request.getUId());
 
         if(existingConsultation == null) {
-            throw new IllegalArgumentException("존재하지 않는 상담입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 상담입니다.");
         }
 
         return consultationDao.cancelConsultation(request.getConsultationId(), request.getUId());

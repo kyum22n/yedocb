@@ -6,8 +6,10 @@ import org.springframework.stereotype.Service;
 import com.example.demo.dao.TreatmentDao;
 import com.example.demo.dto.response.treatment.TreatmentResponseDto;
 import com.example.demo.entity.Treatment;
-import java.util.ArrayList;
+import com.example.demo.exception.ResourceNotFoundException;
+
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 파일명: TreatmentService.java
@@ -17,6 +19,8 @@ import java.util.List;
  * 수정 이력
  * ===============================
  * 2026-05-02 | 규민 | 클래스 생성
+ * 2026-09-06 | 리팩토링 | "존재하지 않는 항목입니다" -> ResourceNotFoundException 교체,
+ *                        응답 DTO 매핑을 TreatmentResponseDto.from(entity) 정적 팩토리 방식으로 변경 (Phase 2)
  */
 
 @Service
@@ -27,39 +31,16 @@ public class TreatmentService {
 
     // 진료항목 목록 조회
     public List<TreatmentResponseDto> getVisibleTreatments() {
-
-        List<Treatment> treatments = treatmentDao.selectVisibleTreatments();
-        List<TreatmentResponseDto> listResponse = new ArrayList<>();
-
-        for (Treatment treatment : treatments) {
-            TreatmentResponseDto response = new TreatmentResponseDto();
-            response.setTreatmentId(treatment.getTreatmentId());
-            response.setTreatmentName(treatment.getTreatmentName());
-            response.setDescription(treatment.getDescription());
-            response.setIsReservable(treatment.getIsReservable());
-            
-            listResponse.add(response);
-        }
-
-        return listResponse;
+        return treatmentDao.selectVisibleTreatments().stream()
+                .map(TreatmentResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     // 카테고리별 진료항목 조회
     public List<TreatmentResponseDto> getVisibleTreatmentsByCategoryId(Integer categoryId) {
-        List<Treatment> treatments = treatmentDao.selectVisibleTreatmentsByCategoryId(categoryId);
-        List<TreatmentResponseDto> listResponse = new ArrayList<>();
-
-        for(Treatment treatment : treatments) {
-            TreatmentResponseDto response = new TreatmentResponseDto();
-            response.setTreatmentId(treatment.getTreatmentId());
-            response.setTreatmentName(treatment.getTreatmentName());
-            response.setDescription(treatment.getDescription());
-            response.setIsReservable(treatment.getIsReservable());
-            
-            listResponse.add(response);
-        }
-
-        return listResponse;
+        return treatmentDao.selectVisibleTreatmentsByCategoryId(categoryId).stream()
+                .map(TreatmentResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     // 진료항목 단일 조회
@@ -68,15 +49,9 @@ public class TreatmentService {
         Treatment treatment = treatmentDao.selectVisibleTreatmentById(treatmentId);
 
         if(treatment == null) {
-            throw new IllegalArgumentException("존재하지 않는 항목입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 항목입니다.");
         }
 
-        TreatmentResponseDto response = new TreatmentResponseDto();
-        response.setTreatmentId(treatment.getTreatmentId());
-        response.setTreatmentName(treatment.getTreatmentName());
-        response.setDescription(treatment.getDescription());
-        response.setIsReservable(treatment.getIsReservable());
-        
-        return response;
+        return TreatmentResponseDto.from(treatment);
     }
 }

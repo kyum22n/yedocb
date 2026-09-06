@@ -1,5 +1,6 @@
 package com.example.demo.dto.request.consultation;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -15,8 +16,10 @@ import lombok.Data;
 @Data
 public class AdminConsultationConvertRequestDto {
     // 상담 ID
+    @NotNull
     private Integer consultationId;
     // 예약 ID
+    @NotNull
     private Integer reservationId;
     // 담당자 ID
     private Integer adminId;

@@ -19,6 +19,7 @@ import com.example.demo.service.AdminTreatmentCategoryService;
 import com.example.demo.dto.request.treatment.CategoryCreateRequestDto;
 import com.example.demo.dto.request.treatment.CategoryUpdateRequestDto;
 import com.example.demo.dto.response.treatment.CategoryResponseDto;
+import jakarta.validation.Valid;
 
 /**
  * 파일명: AdminTreatmentCategoryController.java
@@ -51,13 +52,13 @@ public class AdminTreatmentCategoryController {
 
     // 카테고리 등록
     @PostMapping("/register")
-    public ResponseEntity<Integer> registerCategory(@RequestBody CategoryCreateRequestDto request) {
+    public ResponseEntity<Integer> registerCategory(@Valid @RequestBody CategoryCreateRequestDto request) {
         return ResponseEntity.ok(categoryService.createCategory(request));
     }
 
     // 카테고리 수정
     @PutMapping("/update")
-    public ResponseEntity<Integer> updateCategory(@RequestBody CategoryUpdateRequestDto request) {
+    public ResponseEntity<Integer> updateCategory(@Valid @RequestBody CategoryUpdateRequestDto request) {
         return ResponseEntity.ok(categoryService.modifyCategory(request));
     }
 

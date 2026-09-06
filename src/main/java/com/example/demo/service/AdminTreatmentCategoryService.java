@@ -4,14 +4,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 import com.example.demo.dao.AdminTreatmentCategoryDao;
-import com.example.demo.dao.TreatmentCategoryDao;
 import com.example.demo.dto.response.treatment.CategoryResponseDto;
 import com.example.demo.dto.request.treatment.CategoryCreateRequestDto;
 import com.example.demo.dto.request.treatment.CategoryUpdateRequestDto;
 import com.example.demo.entity.TreatmentCategory;
+import com.example.demo.exception.ResourceNotFoundException;
 
 /**
  * 파일명: AdminTreatmentCategoryService.java
@@ -21,6 +21,8 @@ import com.example.demo.entity.TreatmentCategory;
  * 수정 이력
  * ===============================
  * 2026-05-02 | 규민 | 클래스 생성
+ * 2026-09-06 | 리팩토링 | "존재하지 않는 카테고리입니다" -> ResourceNotFoundException 교체,
+ *                        응답 DTO 매핑을 CategoryResponseDto.from(entity) 정적 팩토리 방식으로 변경 (Phase 2)
  */
 
 @Service
@@ -31,22 +33,9 @@ public class AdminTreatmentCategoryService {
 
     // 카테고리 목록 조회
     public List<CategoryResponseDto> getAllCategories() {
-
-        List<TreatmentCategory> categories = categoryDao.selectAllCategories();
-        List<CategoryResponseDto> listResponse = new ArrayList<>();
-
-        for(TreatmentCategory category : categories) {
-            CategoryResponseDto response = new CategoryResponseDto();
-            response.setCategoryId(category.getCategoryId());
-            response.setCategoryName(category.getCategoryName());
-            response.setIsVisible(category.getIsVisible());
-            response.setCreatedAt(category.getCreatedAt());
-            response.setUpdatedAt(category.getUpdatedAt());
-
-            listResponse.add(response);
-        }
-
-        return listResponse;
+        return categoryDao.selectAllCategories().stream()
+                .map(CategoryResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     // 카테고리 상세 조회
@@ -55,17 +44,10 @@ public class AdminTreatmentCategoryService {
         TreatmentCategory category = categoryDao.selectCategoryById(categoryId);
 
         if(category == null) {
-            throw new IllegalArgumentException("존재하지 않는 카테고리입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 카테고리입니다.");
         }
 
-        CategoryResponseDto response = new CategoryResponseDto();
-        response.setCategoryId(category.getCategoryId());
-        response.setCategoryName(category.getCategoryName());
-        response.setIsVisible(category.getIsVisible());
-        response.setCreatedAt(category.getCreatedAt());
-        response.setUpdatedAt(category.getUpdatedAt());
-
-        return response;
+        return CategoryResponseDto.from(category);
     }
 
     // 카테고리 생성
@@ -84,7 +66,7 @@ public class AdminTreatmentCategoryService {
         TreatmentCategory existingCategory = categoryDao.selectCategoryById(request.getCategoryId());
 
         if(existingCategory == null) {
-            throw new IllegalArgumentException("존재하지 않는 카테고리입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 카테고리입니다.");
         }
 
         TreatmentCategory category = new TreatmentCategory();
@@ -101,7 +83,7 @@ public class AdminTreatmentCategoryService {
         TreatmentCategory existingCategory = categoryDao.selectCategoryById(categoryId);
 
         if(existingCategory == null) {
-            throw new IllegalArgumentException("존재하지 않는 카테고리입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 카테고리입니다.");
         }
 
         return categoryDao.deleteCategory(categoryId);

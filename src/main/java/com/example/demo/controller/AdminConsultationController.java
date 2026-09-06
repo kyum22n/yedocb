@@ -21,6 +21,8 @@ import com.example.demo.dto.request.consultation.AdminConsultationUpdateRequestD
 import com.example.demo.dto.response.consultation.AdminConsultationResponseDto;
 import com.example.demo.service.AdminConsultationService;
 
+import jakarta.validation.Valid;
+
 /**
  * 파일명: AdminConsultationController.java
  * 설명: 관리자용 상담 관련 controller
@@ -40,7 +42,7 @@ public class AdminConsultationController {
 
     // 상담 등록
     @PostMapping("/register")
-    public ResponseEntity<Integer> registerConsultation(@RequestBody AdminConsultationCreateRequestDto request) {
+    public ResponseEntity<Integer> registerConsultation(@Valid @RequestBody AdminConsultationCreateRequestDto request) {
         return ResponseEntity.ok(consultationService.createConsultation(request));
     }
 
@@ -80,21 +82,21 @@ public class AdminConsultationController {
 
     // 상담 정보 수정
     @PutMapping("/update")
-    public ResponseEntity<Integer> updateConsultation(@RequestBody AdminConsultationUpdateRequestDto request) {
+    public ResponseEntity<Integer> updateConsultation(@Valid @RequestBody AdminConsultationUpdateRequestDto request) {
         return ResponseEntity.ok(consultationService.modifyConsultation(request));
     }
 
     // 상담 상태 수정
     @PutMapping("/status/update")
     public ResponseEntity<Integer> updateConsultationStatus(
-            @RequestBody AdminConsultationStatusUpdateRequestDto request) {
+            @Valid @RequestBody AdminConsultationStatusUpdateRequestDto request) {
         return ResponseEntity.ok(consultationService.modifyConsultationStatus(request));
     }
 
     // 상담 예약 전환
     @PutMapping("/convert")
     public ResponseEntity<Integer> convertConsultationToReservation(
-            @RequestBody AdminConsultationConvertRequestDto request) {
+            @Valid @RequestBody AdminConsultationConvertRequestDto request) {
         return ResponseEntity.ok(consultationService.convertConsultationToReservation(request));
     }
 

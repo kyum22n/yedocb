@@ -1,5 +1,7 @@
 package com.example.demo.dto.request.treatment;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -15,8 +17,10 @@ import lombok.Data;
 @Data
 public class CategoryUpdateRequestDto {
     // 카테고리 ID
+    @NotNull
     private Integer categoryId;
     // 카테고리명
+    @NotBlank
     private String categoryName;
     // 노출 여부
     private Boolean isVisible;

@@ -4,9 +4,10 @@ import org.springframework.stereotype.Service;
 import com.example.demo.dao.TreatmentCategoryDao;
 import com.example.demo.dto.response.treatment.CategoryResponseDto;
 import com.example.demo.entity.TreatmentCategory;
+import com.example.demo.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 파일명: TreatmentCategoryService.java
@@ -16,6 +17,8 @@ import java.util.List;
  * 수정 이력
  * ===============================
  * 2026-05-02 | 규민 | 클래스 생성
+ * 2026-09-06 | 리팩토링 | "존재하지 않는 카테고리입니다" -> ResourceNotFoundException 교체,
+ *                        응답 DTO 매핑을 CategoryResponseDto.from(entity) 정적 팩토리 방식으로 변경 (Phase 2)
  */
 
 @Service
@@ -26,19 +29,9 @@ public class TreatmentCategoryService {
 
     // 카테고리 목록 조회
     public List<CategoryResponseDto> getAllVisibleCategories() {
-
-        List<TreatmentCategory> categories = categoryDao.selectVisibleCategories();
-        List<CategoryResponseDto> listResponse = new ArrayList<>();
-
-        for(TreatmentCategory category : categories) {
-            CategoryResponseDto response = new CategoryResponseDto();
-            response.setCategoryId(category.getCategoryId());
-            response.setCategoryName(category.getCategoryName());
-
-            listResponse.add(response);
-        }
-
-        return listResponse;
+        return categoryDao.selectVisibleCategories().stream()
+                .map(CategoryResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     // 카테고리 상세 조회
@@ -47,13 +40,9 @@ public class TreatmentCategoryService {
         TreatmentCategory category = categoryDao.selectVisibleCategoryById(categoryId);
 
         if(category == null) {
-            throw new IllegalArgumentException("존재하지 않는 카테고리입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 카테고리입니다.");
         }
 
-        CategoryResponseDto response = new CategoryResponseDto();
-        response.setCategoryId(category.getCategoryId());
-        response.setCategoryName(category.getCategoryName());
-
-        return response;
+        return CategoryResponseDto.from(category);
     }
 }

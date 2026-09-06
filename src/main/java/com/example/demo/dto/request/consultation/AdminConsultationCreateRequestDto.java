@@ -3,6 +3,7 @@ package com.example.demo.dto.request.consultation;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 /**
@@ -18,6 +19,7 @@ import lombok.Data;
 @Data
 public class AdminConsultationCreateRequestDto {
     // 사용자 ID
+    @NotBlank
     private String uId;
     // 예약 ID
     private Integer reservationId;

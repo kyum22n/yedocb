@@ -1,5 +1,7 @@
 package com.example.demo.dto.response.treatment;
 
+import com.example.demo.entity.Treatment;
+
 import lombok.Data;
 
 /**
@@ -22,4 +24,13 @@ public class TreatmentResponseDto {
     private String description;
     // 예약 가능 여부
     private Boolean isReservable;
+
+    public static TreatmentResponseDto from(Treatment entity) {
+        TreatmentResponseDto dto = new TreatmentResponseDto();
+        dto.setTreatmentId(entity.getTreatmentId());
+        dto.setTreatmentName(entity.getTreatmentName());
+        dto.setDescription(entity.getDescription());
+        dto.setIsReservable(entity.getIsReservable());
+        return dto;
+    }
 }

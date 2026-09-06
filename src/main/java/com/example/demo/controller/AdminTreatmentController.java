@@ -19,6 +19,8 @@ import com.example.demo.dto.request.treatment.TreatmentUpdateRequestDto;
 import com.example.demo.dto.response.treatment.AdminTreatmentResponseDto;
 import com.example.demo.service.AdminTreatmentService;
 
+import jakarta.validation.Valid;
+
 /**
  * 파일명: AdminTreatmentController.java
  * 설명: 관리자용 진료항목 관련 controller
@@ -58,13 +60,13 @@ public class AdminTreatmentController {
 
     // 진료항목 등록
     @PostMapping("/register")
-    public ResponseEntity<Integer> registerTreatment(@RequestBody TreatmentCreateRequestDto request) {
+    public ResponseEntity<Integer> registerTreatment(@Valid @RequestBody TreatmentCreateRequestDto request) {
         return ResponseEntity.ok(treatmentService.createTreatment(request));
     }
 
     // 진료항목 수정
     @PutMapping("/update")
-    public ResponseEntity<Integer> updateTreatment(@RequestBody TreatmentUpdateRequestDto request) {
+    public ResponseEntity<Integer> updateTreatment(@Valid @RequestBody TreatmentUpdateRequestDto request) {
         return ResponseEntity.ok(treatmentService.updateTreatment(request));
     }
 

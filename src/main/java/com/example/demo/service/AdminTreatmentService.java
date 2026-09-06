@@ -1,7 +1,7 @@
 package com.example.demo.service;
 
 import java.util.List;
-import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -11,6 +11,7 @@ import com.example.demo.dto.request.treatment.TreatmentUpdateRequestDto;
 import com.example.demo.dto.response.treatment.AdminTreatmentResponseDto;
 import com.example.demo.dto.request.treatment.TreatmentCreateRequestDto;
 import com.example.demo.entity.Treatment;
+import com.example.demo.exception.ResourceNotFoundException;
 
 /**
  * 파일명: AdminTreatmentService.java
@@ -20,6 +21,8 @@ import com.example.demo.entity.Treatment;
  * 수정 이력
  * ===============================
  * 2026-05-02 | 규민 | 클래스 생성
+ * 2026-09-06 | 리팩토링 | "존재하지 않는 항목입니다" -> ResourceNotFoundException 교체,
+ *                        응답 DTO 매핑을 AdminTreatmentResponseDto.from(entity) 정적 팩토리 방식으로 변경 (Phase 2)
  */
 
 @Service
@@ -30,75 +33,28 @@ public class AdminTreatmentService {
 
     // 진료항목 목록 조회
     public List<AdminTreatmentResponseDto> getAllTreatments() {
-
-        List<Treatment> treatments = treatmentDao.selectAllTreatments();
-        List<AdminTreatmentResponseDto> listResponse = new ArrayList<>();
-
-        for(Treatment treatment : treatments) {
-            
-            AdminTreatmentResponseDto response = new AdminTreatmentResponseDto();
-
-            response.setTreatmentId(treatment.getTreatmentId());
-            response.setCategoryId(treatment.getCategoryId());
-            response.setTreatmentName(treatment.getTreatmentName());
-            response.setDescription(treatment.getDescription());
-            response.setIsReservable(treatment.getIsReservable());
-            response.setIsVisible(treatment.getIsVisible());
-            response.setCreatedAt(treatment.getCreatedAt());
-            response.setUpdatedAt(treatment.getUpdatedAt());
-
-            listResponse.add(response);
-        }
-
-        return listResponse;
+        return treatmentDao.selectAllTreatments().stream()
+                .map(AdminTreatmentResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     // 카테고리별 항목 조회
     public List<AdminTreatmentResponseDto> getTreatmentsByCategoryId(Integer categoryId) {
-        
-        List<Treatment> treatments = treatmentDao.selectTreatmentsByCategoryId(categoryId);
-        List<AdminTreatmentResponseDto> listResponse = new ArrayList<>();
-
-        for(Treatment treatment : treatments) {
-            
-            AdminTreatmentResponseDto response = new AdminTreatmentResponseDto();
-
-            response.setTreatmentId(treatment.getTreatmentId());
-            response.setCategoryId(treatment.getCategoryId());
-            response.setTreatmentName(treatment.getTreatmentName());
-            response.setDescription(treatment.getDescription());
-            response.setIsReservable(treatment.getIsReservable());
-            response.setIsVisible(treatment.getIsVisible());
-            response.setCreatedAt(treatment.getCreatedAt());
-            response.setUpdatedAt(treatment.getUpdatedAt());
-
-            listResponse.add(response);
-        }
-
-        return listResponse;
+        return treatmentDao.selectTreatmentsByCategoryId(categoryId).stream()
+                .map(AdminTreatmentResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     // 진료 항목 조회
     public AdminTreatmentResponseDto getTreatmentById(Integer treatmentId){
-        
+
         Treatment treatment = treatmentDao.selectTreatmentById(treatmentId);
-        
+
         if (treatment == null) {
-            throw new IllegalArgumentException("존재하지 않는 항목입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 항목입니다.");
         }
 
-        AdminTreatmentResponseDto response = new AdminTreatmentResponseDto();
-
-        response.setTreatmentId(treatment.getTreatmentId());
-        response.setCategoryId(treatment.getCategoryId());
-        response.setTreatmentName(treatment.getTreatmentName());
-        response.setDescription(treatment.getDescription());
-        response.setIsReservable(treatment.getIsReservable());
-        response.setIsVisible(treatment.getIsVisible());
-        response.setCreatedAt(treatment.getCreatedAt());
-        response.setUpdatedAt(treatment.getUpdatedAt());
-
-        return response;
+        return AdminTreatmentResponseDto.from(treatment);
     }
 
     // 진료 항목 추가
@@ -121,7 +77,7 @@ public class AdminTreatmentService {
         Treatment existingTreatment = treatmentDao.selectTreatmentById(request.getTreatmentId());
 
         if(existingTreatment == null) {
-            throw new IllegalArgumentException("존재하지 않는 항목입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 항목입니다.");
         }
 
         Treatment treatment = new Treatment();
@@ -142,7 +98,7 @@ public class AdminTreatmentService {
         Treatment existingTreatment = treatmentDao.selectTreatmentById(treatmentId);
 
         if(existingTreatment == null) {
-            throw new IllegalArgumentException("존재하지 않는 항목입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 항목입니다.");
         }
 
         return treatmentDao.deleteTreatment(treatmentId);

@@ -1,7 +1,7 @@
 package com.example.demo.service;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,6 +13,7 @@ import com.example.demo.dto.request.consultation.AdminConsultationStatusUpdateRe
 import com.example.demo.dto.request.consultation.AdminConsultationUpdateRequestDto;
 import com.example.demo.dto.response.consultation.AdminConsultationResponseDto;
 import com.example.demo.entity.Consultation;
+import com.example.demo.exception.ResourceNotFoundException;
 
 /**
  * 파일명: AdminConsultationService.java
@@ -22,6 +23,8 @@ import com.example.demo.entity.Consultation;
  * 수정 이력
  * ===============================
  * 2026-05-16 | 규민 | 클래스 생성
+ * 2026-09-06 | 리팩토링 | "존재하지 않는 상담입니다" -> ResourceNotFoundException 교체,
+ *                        응답 DTO 매핑을 AdminConsultationResponseDto.from(entity) 정적 팩토리 방식으로 변경 (Phase 2)
  */
 
 @Service
@@ -66,27 +69,9 @@ public class AdminConsultationService {
     // 상담 목록 조회
     public List<AdminConsultationResponseDto> getAllConsultations() {
 
-        List<Consultation> consultations = adminConsultationDao.selectAllConsultations();
-        List<AdminConsultationResponseDto> listResponse = new ArrayList<>();
-
-        for(Consultation consultation : consultations) {
-            AdminConsultationResponseDto response = new AdminConsultationResponseDto();
-            response.setConsultationId(consultation.getConsultationId());
-            response.setUId(consultation.getUId());
-            response.setReservationId(consultation.getReservationId());
-            response.setTreatmentId(consultation.getTreatmentId());
-            response.setAdminId(consultation.getAdminId());
-            response.setConsultationStatus(consultation.getConsultationStatus());
-            response.setConsultationMemo(consultation.getConsultationMemo());
-            response.setPreferredDate(consultation.getPreferredDate());
-            response.setPreferredTime(consultation.getPreferredTime());
-            response.setCreatedAt(consultation.getCreatedAt());
-            response.setUpdatedAt(consultation.getUpdatedAt());
-
-            listResponse.add(response);
-        }
-
-        return listResponse;
+        return adminConsultationDao.selectAllConsultations().stream()
+                .map(AdminConsultationResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     // 회원별 상담 목록 조회
@@ -96,27 +81,9 @@ public class AdminConsultationService {
             throw new IllegalArgumentException("회원 ID는 필수입니다.");
         }
 
-        List<Consultation> consultations = adminConsultationDao.selectConsultationsByUId(uId);
-        List<AdminConsultationResponseDto> listResponse = new ArrayList<>();
-
-        for(Consultation consultation : consultations) {
-            AdminConsultationResponseDto response = new AdminConsultationResponseDto();
-            response.setConsultationId(consultation.getConsultationId());
-            response.setUId(consultation.getUId());
-            response.setReservationId(consultation.getReservationId());
-            response.setTreatmentId(consultation.getTreatmentId());
-            response.setAdminId(consultation.getAdminId());
-            response.setConsultationStatus(consultation.getConsultationStatus());
-            response.setConsultationMemo(consultation.getConsultationMemo());
-            response.setPreferredDate(consultation.getPreferredDate());
-            response.setPreferredTime(consultation.getPreferredTime());
-            response.setCreatedAt(consultation.getCreatedAt());
-            response.setUpdatedAt(consultation.getUpdatedAt());
-
-            listResponse.add(response);
-        }
-
-        return listResponse;
+        return adminConsultationDao.selectConsultationsByUId(uId).stream()
+                .map(AdminConsultationResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     // 담당자별 상담 목록 조회
@@ -126,27 +93,9 @@ public class AdminConsultationService {
             throw new IllegalArgumentException("담당자 ID는 필수입니다.");
         }
 
-        List<Consultation> consultations = adminConsultationDao.selectConsultationsByAdminId(adminId);
-        List<AdminConsultationResponseDto> listResponse = new ArrayList<>();
-
-        for(Consultation consultation : consultations) {
-            AdminConsultationResponseDto response = new AdminConsultationResponseDto();
-            response.setConsultationId(consultation.getConsultationId());
-            response.setUId(consultation.getUId());
-            response.setReservationId(consultation.getReservationId());
-            response.setTreatmentId(consultation.getTreatmentId());
-            response.setAdminId(consultation.getAdminId());
-            response.setConsultationStatus(consultation.getConsultationStatus());
-            response.setConsultationMemo(consultation.getConsultationMemo());
-            response.setPreferredDate(consultation.getPreferredDate());
-            response.setPreferredTime(consultation.getPreferredTime());
-            response.setCreatedAt(consultation.getCreatedAt());
-            response.setUpdatedAt(consultation.getUpdatedAt());
-
-            listResponse.add(response);
-        }
-
-        return listResponse;
+        return adminConsultationDao.selectConsultationsByAdminId(adminId).stream()
+                .map(AdminConsultationResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     // 상담 상태별 목록 조회
@@ -164,27 +113,9 @@ public class AdminConsultationService {
             throw new IllegalArgumentException("올바르지 않은 상담 상태입니다.");
         }
 
-        List<Consultation> consultations = adminConsultationDao.selectConsultationsByStatus(consultationStatus);
-        List<AdminConsultationResponseDto> listResponse = new ArrayList<>();
-
-        for(Consultation consultation : consultations) {
-            AdminConsultationResponseDto response = new AdminConsultationResponseDto();
-            response.setConsultationId(consultation.getConsultationId());
-            response.setUId(consultation.getUId());
-            response.setReservationId(consultation.getReservationId());
-            response.setTreatmentId(consultation.getTreatmentId());
-            response.setAdminId(consultation.getAdminId());
-            response.setConsultationStatus(consultation.getConsultationStatus());
-            response.setConsultationMemo(consultation.getConsultationMemo());
-            response.setPreferredDate(consultation.getPreferredDate());
-            response.setPreferredTime(consultation.getPreferredTime());
-            response.setCreatedAt(consultation.getCreatedAt());
-            response.setUpdatedAt(consultation.getUpdatedAt());
-
-            listResponse.add(response);
-        }
-
-        return listResponse;
+        return adminConsultationDao.selectConsultationsByStatus(consultationStatus).stream()
+                .map(AdminConsultationResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     // 상담 상세 조회
@@ -197,23 +128,10 @@ public class AdminConsultationService {
         Consultation consultation = adminConsultationDao.selectConsultationById(consultationId);
 
         if(consultation == null) {
-            throw new IllegalArgumentException("존재하지 않는 상담입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 상담입니다.");
         }
 
-        AdminConsultationResponseDto response = new AdminConsultationResponseDto();
-        response.setConsultationId(consultation.getConsultationId());
-        response.setUId(consultation.getUId());
-        response.setReservationId(consultation.getReservationId());
-        response.setTreatmentId(consultation.getTreatmentId());
-        response.setAdminId(consultation.getAdminId());
-        response.setConsultationStatus(consultation.getConsultationStatus());
-        response.setConsultationMemo(consultation.getConsultationMemo());
-        response.setPreferredDate(consultation.getPreferredDate());
-        response.setPreferredTime(consultation.getPreferredTime());
-        response.setCreatedAt(consultation.getCreatedAt());
-        response.setUpdatedAt(consultation.getUpdatedAt());
-
-        return response;
+        return AdminConsultationResponseDto.from(consultation);
     }
 
     // 상담 정보 수정
@@ -242,7 +160,7 @@ public class AdminConsultationService {
         Consultation existingConsultation = adminConsultationDao.selectConsultationById(request.getConsultationId());
 
         if(existingConsultation == null) {
-            throw new IllegalArgumentException("존재하지 않는 상담입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 상담입니다.");
         }
 
         Consultation consultation = new Consultation();
@@ -284,7 +202,7 @@ public class AdminConsultationService {
         Consultation existingConsultation = adminConsultationDao.selectConsultationById(request.getConsultationId());
 
         if(existingConsultation == null) {
-            throw new IllegalArgumentException("존재하지 않는 상담입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 상담입니다.");
         }
 
         Consultation consultation = new Consultation();
@@ -314,7 +232,7 @@ public class AdminConsultationService {
         Consultation existingConsultation = adminConsultationDao.selectConsultationById(request.getConsultationId());
 
         if(existingConsultation == null) {
-            throw new IllegalArgumentException("존재하지 않는 상담입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 상담입니다.");
         }
 
         Consultation consultation = new Consultation();
@@ -336,7 +254,7 @@ public class AdminConsultationService {
         Consultation existingConsultation = adminConsultationDao.selectConsultationById(consultationId);
 
         if(existingConsultation == null) {
-            throw new IllegalArgumentException("존재하지 않는 상담입니다.");
+            throw new ResourceNotFoundException("존재하지 않는 상담입니다.");
         }
 
         return adminConsultationDao.deleteConsultation(consultationId);

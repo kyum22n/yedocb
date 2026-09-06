@@ -1,5 +1,7 @@
 package com.example.demo.dto.request.treatment;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -16,10 +18,13 @@ import lombok.Data;
 public class TreatmentUpdateRequestDto {
 
     // 항목 ID
+    @NotNull
     private Integer treatmentId;
     // 카테고리 ID
+    @NotNull
     private Integer categoryId;
     // 항목명
+    @NotBlank
     private String treatmentName;
     // 설명
     private String description;

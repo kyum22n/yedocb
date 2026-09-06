@@ -3,6 +3,8 @@ package com.example.demo.dto.request.consultation;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -18,10 +20,13 @@ import lombok.Data;
 @Data
 public class ConsultationUpdateRequestDto {
     // 상담 ID
+    @NotNull
     private Integer consultationId;
     // 사용자 ID
+    @NotBlank
     private String uId;
     // 진료 항목 ID
+    @NotNull
     private Integer treatmentId;
     // 상담 메모
     private String consultationMemo;

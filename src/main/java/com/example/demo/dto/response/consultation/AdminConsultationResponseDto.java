@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+import com.example.demo.entity.Consultation;
+
 import lombok.Data;
 
 /**
@@ -40,4 +42,20 @@ public class AdminConsultationResponseDto {
     private LocalDateTime createdAt;
     // 수정일
     private LocalDateTime updatedAt;
+
+    public static AdminConsultationResponseDto from(Consultation entity) {
+        AdminConsultationResponseDto dto = new AdminConsultationResponseDto();
+        dto.setConsultationId(entity.getConsultationId());
+        dto.setUId(entity.getUId());
+        dto.setReservationId(entity.getReservationId());
+        dto.setTreatmentId(entity.getTreatmentId());
+        dto.setAdminId(entity.getAdminId());
+        dto.setConsultationStatus(entity.getConsultationStatus());
+        dto.setConsultationMemo(entity.getConsultationMemo());
+        dto.setPreferredDate(entity.getPreferredDate());
+        dto.setPreferredTime(entity.getPreferredTime());
+        dto.setCreatedAt(entity.getCreatedAt());
+        dto.setUpdatedAt(entity.getUpdatedAt());
+        return dto;
+    }
 }

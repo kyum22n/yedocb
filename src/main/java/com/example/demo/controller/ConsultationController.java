@@ -19,6 +19,8 @@ import com.example.demo.dto.request.consultation.ConsultationUpdateRequestDto;
 import com.example.demo.dto.response.consultation.ConsultationResponseDto;
 import com.example.demo.service.ConsultationService;
 
+import jakarta.validation.Valid;
+
 /**
  * 파일명: ConsultationController.java
  * 설명: 사용자용 상담 관련 controller
@@ -38,7 +40,7 @@ public class ConsultationController {
 
     // 상담 등록
     @PostMapping("/register")
-    public ResponseEntity<Integer> registerConsultation(@RequestBody ConsultationCreateRequestDto request) {
+    public ResponseEntity<Integer> registerConsultation(@Valid @RequestBody ConsultationCreateRequestDto request) {
         return ResponseEntity.ok(consultationService.createConsultation(request));
     }
 
@@ -59,13 +61,13 @@ public class ConsultationController {
 
     // 상담 정보 수정
     @PutMapping("/update")
-    public ResponseEntity<Integer> updateConsultation(@RequestBody ConsultationUpdateRequestDto request) {
+    public ResponseEntity<Integer> updateConsultation(@Valid @RequestBody ConsultationUpdateRequestDto request) {
         return ResponseEntity.ok(consultationService.modifyConsultation(request));
     }
 
     // 상담 취소
     @PutMapping("/cancel")
-    public ResponseEntity<Integer> cancelConsultation(@RequestBody ConsultationCancelRequestDto request) {
+    public ResponseEntity<Integer> cancelConsultation(@Valid @RequestBody ConsultationCancelRequestDto request) {
         return ResponseEntity.ok(consultationService.cancelConsultation(request));
     }
 }

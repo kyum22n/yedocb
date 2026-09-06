@@ -2,6 +2,8 @@ package com.example.demo.dto.response.treatment;
 
 import java.time.LocalDateTime;
 
+import com.example.demo.entity.Treatment;
+
 import lombok.Data;
 
 /**
@@ -33,4 +35,17 @@ public class AdminTreatmentResponseDto {
     private LocalDateTime createdAt;
     // 수정일
     private LocalDateTime updatedAt;
+
+    public static AdminTreatmentResponseDto from(Treatment entity) {
+        AdminTreatmentResponseDto dto = new AdminTreatmentResponseDto();
+        dto.setTreatmentId(entity.getTreatmentId());
+        dto.setCategoryId(entity.getCategoryId());
+        dto.setTreatmentName(entity.getTreatmentName());
+        dto.setDescription(entity.getDescription());
+        dto.setIsReservable(entity.getIsReservable());
+        dto.setIsVisible(entity.getIsVisible());
+        dto.setCreatedAt(entity.getCreatedAt());
+        dto.setUpdatedAt(entity.getUpdatedAt());
+        return dto;
+    }
 }

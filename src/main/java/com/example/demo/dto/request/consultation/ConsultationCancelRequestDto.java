@@ -1,5 +1,7 @@
 package com.example.demo.dto.request.consultation;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -15,7 +17,9 @@ import lombok.Data;
 @Data
 public class ConsultationCancelRequestDto {
     // 상담 ID
+    @NotNull
     private Integer consultationId;
     // 사용자 ID
+    @NotBlank
     private String uId;
 }
