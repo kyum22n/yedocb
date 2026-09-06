@@ -190,3 +190,99 @@ B는 화이트리스트가 두 곳에 따로 있었고 서로 달랐다:
 ### 패키지 네임스페이스
 
 전체 패키지를 `com.example.yedocb`로 이관하는 안도 검토했으나, 사용자 승인에 따라 기존 `com.example.demo`를 유지했다(변경 범위/위험도 최소화).
+
+---
+
+## Phase 2 리팩토링 로그
+
+작업 범위: Review 도메인 신규 구현, StaffSchedule 중복 등록 버그 수정, Consultation/Treatment/TreatmentCategory 예외·DTO 팩토리 리트로핏, schema.sql 확장, 단위 테스트, 문서화.
+
+### 1. Review 도메인 신규 구현
+
+Phase 1 시점에는 `entity/Review.java`만 존재했고 DAO/Service/Controller/DTO/Mapper가 전혀 없었다(엔티티도 오케스트레이팅 세션이 이번 Phase 2 착수 직전에 새로 작성함). 완전히 새로 만든 도메인이므로 legacy 코드와의 호환을 고려할 필요가 없었고, 처음부터 커스텀 예외(`ResourceNotFoundException`/`UnauthorizedActionException`)와 `static from(entity)` DTO 팩토리 패턴, Bean Validation을 전부 적용했다.
+
+**새로 생성된 파일**
+- `entity/Review.java` (필드 재설계는 오케스트레이팅 세션 작업, 본 세션은 `isHidden` 필드만 추가)
+- `dao/ReviewDao.java`, `resources/mapper/ReviewMapper.xml`
+- `service/ReviewService.java` (사용자용), `service/AdminReviewService.java` (관리자용, 모더레이션)
+- `controller/ReviewController.java` (`/reviews`), `controller/AdminReviewController.java` (`/admin/reviews`)
+- `dto/request/review/ReviewCreateRequestDto.java`, `ReviewUpdateRequestDto.java`
+- `dto/response/review/ReviewResponseDto.java` (사용자용), `AdminReviewResponseDto.java` (관리자용)
+
+**판단: `isHidden` 필드 추가**
+지시문이 관리자 리뷰 모더레이션에 "숨김/삭제" 기능을 요구했는데, 엔티티에는 노출 제어 필드가 전혀 없었다. `Notice`/`Treatment`/`TreatmentCategory`가 이미 `isVisible: Boolean` 패턴을 쓰고 있어 그 패턴을 따르되, 리뷰는 기본이 "노출"이고 예외적으로 "숨김" 처리하는 모더레이션 흐름이라 의미상 `isHidden`(기본값 `false`)으로 이름 지었다. 사용자용 조회(`selectAllReviews`, `selectReviewsByTreatmentId`)는 `WHERE is_hidden = false`로 필터링하고, 관리자용은 별도 쿼리(`selectAllReviewsForAdmin`)로 전체(숨김 포함)를 반환한다. 사용자용 응답 DTO(`ReviewResponseDto`)에는 `isHidden`을 아예 넣지 않아 프론트가 실수로 이 필드를 노출할 위험을 원천 차단했다.
+
+**판단: `Review.userId`는 `String`, 왜 `Consultation.uId`와 다른가**
+`Review` 엔티티는 Phase 2 착수 직전 오케스트레이팅 세션이 필드명을 "전체 단어" 컨벤션(`userId`)으로 재설계했고, 타입은 Phase 1에서 확정된 `User.uId: String`(로그인 ID가 곧 PK) 기준에 맞췄다. 반면 `Consultation.uId`는 Phase 1 Task 3에서 `memberId: Integer` → `uId: String`으로 기계적 rename만 한 것이라 필드명이 예전 축약 컨벤션(`uId`)에 남아 있다. 즉 두 네이밍 컨벤션이 한 코드베이스에 공존하는데, 이는 의도적 재설계(Review)와 최소 변경 리네임(Consultation)이라는 서로 다른 리팩토링 히스토리를 반영한다. Review 이후 신규 도메인은 `userId` 전체 단어 컨벤션을 따르는 것을 권장한다.
+
+**조회수(hits) 증가 패턴 — 참고할 선례 없음**
+코드베이스 전체에서 `hits`/`viewCount`/`increment` 패턴이 Review 이전에는 전혀 없었다(Inquiry/Notice 모두 조회수 개념 자체가 없음). 별도 DAO 메소드 `incrementHits(Integer reviewId)`(단순 `UPDATE ... SET hits = hits + 1`)를 신설하고, `ReviewService.getReviewById()`가 상세 조회 직후 이 메소드를 호출하도록 했다. `updated_at`은 조회수 증가만으로는 갱신하지 않는다(모더레이션/내용 수정과 조회는 별개 이벤트로 취급). 동시성 관점에서 `hits = hits + 1` 형태의 원자적 UPDATE라 애플리케이션 레벨 락 없이도 레이스 컨디션에 안전하다.
+
+**작성자 본인 확인 — `UnauthorizedActionException`**
+`ReviewService.modifyReview()`/`removeReview()`는 `review.userId`와 요청의 `userId`가 다르면 403(`UnauthorizedActionException`)을 던진다. 요청 바디에 `userId`를 그대로 받는 방식은 임시방편이며(JWT 인증이 완전히 연동되면 `SecurityContextHolder`에서 인증 주체를 가져와야 함), Phase 1 `UserController`의 동일한 TODO 주석 패턴을 그대로 따랐다.
+
+### 2. StaffSchedule 중복 등록 버그 수정 (Task 2)
+
+**버그**: `AdminStaffScheduleService.createStaffSchedule()`/`modifyStaffSchedule()`가 동일 관리자(`adminId`)의 동일 날짜(`scheduleDate`)에 이미 일정이 존재하는지 검증하지 않아, 한 관리자에게 같은 날짜로 여러 개의(예: WORK와 OFF가 동시에) 일정이 중복 등록될 수 있었다.
+
+**수정 전 (Before)**
+```java
+// createStaffSchedule() — 유형 검증 후 바로 insert, 중복 체크 없음
+if(!request.getScheduleType().equals("WORK") && !request.getScheduleType().equals("OFF")) {
+    throw new IllegalArgumentException("올바르지 않은 일정 유형입니다.");
+}
+StaffSchedule staffSchedule = new StaffSchedule();
+...
+return staffScheduleDao.insertStaffSchedule(staffSchedule);
+```
+
+**수정 후 (After)**
+```java
+StaffSchedule duplicateSchedule = staffScheduleDao.selectStaffScheduleByAdminIdAndDate(
+        request.getAdminId(), request.getScheduleDate());
+if(duplicateSchedule != null) {
+    throw new DuplicateResourceException("이미 해당 날짜에 등록된 직원 일정이 존재합니다.");
+}
+```
+
+`modifyStaffSchedule()`에도 동일한 검증을 추가하되, 수정 시에는 조회된 기존 일정이 "지금 수정하려는 그 일정 자신"인 경우까지 중복으로 오판하지 않도록 `scheduleId`가 다를 때만 예외를 던지도록 했다(`!duplicateSchedule.getScheduleId().equals(request.getScheduleId())`).
+
+새로 추가된 DAO 메소드: `AdminStaffScheduleDao.selectStaffScheduleByAdminIdAndDate(Integer adminId, LocalDate scheduleDate)` + `AdminStaffScheduleMapper.xml`의 대응 `<select>`.
+
+같은 김에 지시문대로 "존재하지 않는 직원 일정입니다"(`getStaffScheduleById`/`modifyStaffSchedule`/`removeStaffSchedule`) 3곳의 `IllegalArgumentException`을 `ResourceNotFoundException`으로 교체했다. "~는 필수입니다"/"올바르지 않은 ~입니다" 성격의 순수 입력 검증 예외는 Phase 1 정책(refactor-log.md §4)과 동일하게 `IllegalArgumentException`으로 남겨두었다.
+
+### 3. Consultation / Treatment / TreatmentCategory 예외·DTO 팩토리 리트로핏 (Task 3)
+
+**예외 교체 범위** (Phase 1 §4 정책을 그대로 계승)
+- "존재하지 않는 상담입니다" (`ConsultationService`, `AdminConsultationService` 전체 메소드) → `ResourceNotFoundException`
+- "존재하지 않는 항목입니다" (`TreatmentService`, `AdminTreatmentService`) → `ResourceNotFoundException`
+- "존재하지 않는 카테고리입니다" (`TreatmentCategoryService`, `AdminTreatmentCategoryService`) → `ResourceNotFoundException`
+- "~는 필수입니다"/"올바르지 않은 ~입니다" 성격의 입력 검증 예외는 그대로 `IllegalArgumentException`으로 남김 (Statistics/Dashboard도 동일 — 엔티티 조회가 없는 순수 집계 도메인이라 이번 리트로핏 대상에서 제외).
+- 이 세 도메인 모두 "중복" 패턴(`DuplicateResourceException` 대상)이 원래 존재하지 않아 해당 교체는 없었다.
+
+**DTO 정적 팩토리 추가** — `dto/response/consultation/*`, `dto/response/treatment/*`의 모든 응답 DTO에 `static XxxResponseDto from(Entity entity)`를 추가하고, 서비스 메소드의 필드별 수동 setter 복사 루프를 전부 `stream().map(XxxResponseDto::from).collect(Collectors.toList())`로 교체했다:
+- `ConsultationResponseDto.from(Consultation)`, `AdminConsultationResponseDto.from(Consultation)`
+- `TreatmentResponseDto.from(Treatment)`, `AdminTreatmentResponseDto.from(Treatment)`
+- `CategoryResponseDto.from(TreatmentCategory)`
+
+**Bean Validation 추가** — Create/Update 요청 DTO에 User 엔티티/`UserCreateRequestDto` 스타일과 동일하게 `@NotBlank`(문자열 필수값)/`@NotNull`(참조/숫자 필수값)을 추가했다. 대상: `dto/request/consultation/*`(7개 전부), `dto/request/treatment/*`(4개 전부), `dto/request/schedule/*`(StaffSchedule Create/Update, Task 2 연장선). 컨트롤러의 `@PostMapping`/`@PutMapping` 메소드 파라미터에 `@Valid`를 추가로 붙였다(`ConsultationController`, `AdminConsultationController`, `AdminTreatmentController`, `AdminTreatmentCategoryController`, `AdminStaffScheduleController`, `ReviewController`).
+
+**판단: `TreatmentController`/`TreatmentCategoryController`(사용자용 GET 전용)는 손대지 않음** — 두 컨트롤러는 조회 전용(GET)이라 `@RequestBody`/`@Valid` 적용 대상 메소드가 없다. `AdminConsultationConvertRequestDto`의 `consultationMemo`는 선택 항목으로 남겨 두었다(예약 전환 시 메모 없이도 전환 가능해야 하는 업무 요구사항으로 판단).
+
+### 4. schema.sql 확장 (Task 5)
+
+기존 Phase 1 테이블 정의는 건드리지 않고 `CREATE TABLE IF NOT EXISTS`로 5개 테이블을 추가했다: `treatment_category`, `treatment`(FK `category_id` → `treatment_category`), `consultation`(FK `u_id` → `users`, `reservation_id` → `reservation`, `treatment_id` → `treatment`), `staff_schedule`, `review`(FK `treatment_id` → `treatment`, `user_id` → `users`, `is_hidden` 컬럼 포함). `staff_schedule.admin_id`는 `Admin`이 회원가입 없이 시드/시딩되는 경우가 있을 수 있어 우선 FK 제약 없이(단순 `INTEGER NOT NULL`) 두었다 — 필요 시 `admin(admin_id)` 참조로 강화할 것을 제안한다.
+
+### 5. 단위 테스트 (Task 6)
+
+- `ReviewServiceTest` — 등록/목록조회/상세조회(조회수 증가 `verify`)/수정·삭제 작성자 본인 확인(`UnauthorizedActionException`)/존재하지 않음(`ResourceNotFoundException`) 케이스
+- `AdminStaffScheduleServiceTest` — 중복 등록 시 `DuplicateResourceException`(등록/수정 양쪽), 자기 자신을 그대로 수정할 때는 중복으로 오판하지 않음(회귀 테스트), 존재하지 않는 일정 수정/삭제 시 `ResourceNotFoundException`
+- `AdminStatisticsServiceTest` — DAO 결과가 있을 때 노쇼율 계산 검증, DAO가 `null`을 반환할 때 0으로 채워지는지 검증, 종료일 < 시작일일 때 `IllegalArgumentException` 검증
+
+Mockito(`@Mock`/`@InjectMocks`, `MockitoExtension`)만 사용하고 실제 DB에는 접근하지 않는다. `./gradlew test` 기준 Phase 1(19개) + Phase 2(19개) = 38개 테스트 중 `DemoApplicationTests.contextLoads()` 1개만 실패하며(로컬에 PostgreSQL이 없어 발생하는 사전 존재 이슈, 이번 변경과 무관), 나머지는 전부 통과한다.
+
+### 6. SecurityPaths — 판단 완료 (오케스트레이팅 세션에서 반영)
+
+Phase 2 세션이 보류한 판단: `ReviewController`의 GET 3종(`/reviews/all`, `/reviews/treatment`, `/reviews/{reviewId}`)을 `Treatment`/`TreatmentCategory`처럼 로그인 없이도 볼 수 있게 할지 여부. `SecurityPaths.PUBLIC_GET_PATTERNS`에 `"/reviews/**"`를 추가해 GET 요청만 permitAll로 열었다(`POST /reviews/register`, `PUT /reviews/update`, `DELETE /reviews/delete`는 계속 인증 필요 — HTTP 메소드 단위로 permitAll을 걸었기 때문에 쓰기 작업은 영향 없음). 이유: 리뷰는 예약 전 탐색 단계에서 보여지는 마케팅성 콘텐츠(진료항목과 동일한 성격)이며, 계획 문서의 "리뷰: 작성/조회" 사용자 기능 중 "조회"에는 별도 로그인 요구가 명시되어 있지 않다.
+
+또한 통합 과정에서 `SecurityConfig`의 기존 규칙이 `/api/admin/**`만 관리자 권한으로 보호하고 있어, 접두사 없는 기존 경로(`/admin/reservations`, `/admin/staff-schedules` 등)는 로그인만 하면(관리자 권한 없이도) 접근 가능했던 보안 공백을 발견해 `.requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPERADMIN")` 규칙을 추가로 반영했다.

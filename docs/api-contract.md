@@ -227,3 +227,179 @@
 4. 대부분의 `IllegalArgumentException` 기반 "필수값 누락"/"올바르지 않은 값" 검증 오류는 현재 500(Internal Server Error)으로 응답된다 (전용 400 예외가 아직 없음). 확정된 예외 매핑은 404/409/403/400(검증코드)/401 뿐이다. Phase 2에서 `@Valid` 전환 또는 전용 400 예외 도입 검토.
 5. `/api/user/**`, `/api/admin/**`는 SecurityConfig에 의해 인증(JWT)이 필요하다 (`register`/`login`/`refresh`/`admin/login`/`oauth2/**` 제외). 그 외 Phase 1 도메인 경로(`/reservations`, `/notices`, `/inquiries`, `/admin/...` 등 `/api` 접두사가 없는 경로)는 `anyRequest().authenticated()`에 걸려 **이제 인증이 필요해졌다** — Phase 1 이전에는 인증 자체가 없었으므로, 프론트에서 이 경로들을 호출할 때도 `Authorization` 헤더를 붙여야 한다.
 6. Google/Kakao OAuth 클라이언트 ID/Secret은 로컬 `application.properties`에서 빈 값(`${GOOGLE_CLIENT_ID:}` 등)으로 기본 설정되어 있다 — 로컬에서 소셜 로그인을 테스트하려면 환경변수로 실제 값을 주입해야 한다.
+
+---
+
+# API Contract — Phase 2 추가분
+
+대상 도메인: Consultation(+Admin), Treatment(+Admin), TreatmentCategory(+Admin), StaffSchedule(Admin 전용), Statistics(Admin 전용), Dashboard(Admin 전용), Review(+Admin, 신규)
+
+공통 사항은 위 Phase 1 섹션과 동일하다(`ResponseEntity<ExactDtoType>` 그대로 반환, 공용 래퍼 없음, `ErrorResponse` 형식 동일).
+
+---
+
+## 8. Consultation (`/consultations`, `/admin/consultations`)
+
+### 사용자 (`/consultations`)
+
+| Method | Path | Request | Response |
+|---|---|---|---|
+| POST | `/consultations/register` | `ConsultationCreateRequestDto` (`uId: string`(필수), `treatmentId: number`(필수), `consultationMemo, preferredDate(LocalDate), preferredTime(LocalTime)`) | `Integer` |
+| GET | `/consultations/member?uId=` | `uId: string` | `ConsultationResponseDto[]` |
+| GET | `/consultations/{consultationId}?uId=` | `uId: string` | `ConsultationResponseDto` |
+| PUT | `/consultations/update` | `ConsultationUpdateRequestDto` (`consultationId, uId, treatmentId`(모두 필수) `, consultationMemo, preferredDate, preferredTime`) | `Integer` |
+| PUT | `/consultations/cancel` | `ConsultationCancelRequestDto` (`consultationId, uId` 모두 필수) | `Integer` |
+
+`ConsultationResponseDto` 필드: `consultationId, uId, reservationId, treatmentId, consultationStatus, consultationMemo, preferredDate, preferredTime, createdAt, updatedAt`
+
+예외: 존재하지 않는 상담 조회/수정/취소 시 404 (`ResourceNotFoundException`). 필수값 누락은 아직 500(`IllegalArgumentException`, Phase 1과 동일한 알려진 이슈).
+
+### 관리자 (`/admin/consultations`)
+
+| Method | Path | Request | Response |
+|---|---|---|---|
+| POST | `/admin/consultations/register` | `AdminConsultationCreateRequestDto` (`uId`(필수)`, reservationId, treatmentId, adminId, consultationStatus(RECEIVED/SCHEDULED/COMPLETED/CONVERTED/CANCELED), consultationMemo, preferredDate, preferredTime`) | `Integer` |
+| GET | `/admin/consultations/all` | - | `AdminConsultationResponseDto[]` |
+| GET | `/admin/consultations/member?uId=` | `uId: string` | `AdminConsultationResponseDto[]` |
+| GET | `/admin/consultations/admin?adminId=` | `adminId: number` | `AdminConsultationResponseDto[]` |
+| GET | `/admin/consultations/status?consultationStatus=` | `consultationStatus: string` | `AdminConsultationResponseDto[]` |
+| GET | `/admin/consultations/{consultationId}` | - | `AdminConsultationResponseDto` |
+| PUT | `/admin/consultations/update` | `AdminConsultationUpdateRequestDto` (`consultationId`(필수)`, reservationId, treatmentId, adminId, consultationStatus, consultationMemo, preferredDate, preferredTime`) | `Integer` |
+| PUT | `/admin/consultations/status/update` | `AdminConsultationStatusUpdateRequestDto` (`consultationId`(필수)`, adminId, consultationStatus`(필수)`, consultationMemo`) | `Integer` |
+| PUT | `/admin/consultations/convert` | `AdminConsultationConvertRequestDto` (`consultationId, reservationId`(모두 필수)`, adminId, consultationMemo`) | `Integer` (상담을 예약으로 전환) |
+| DELETE | `/admin/consultations/delete/{consultationId}` | - | `Integer` |
+
+`AdminConsultationResponseDto` 필드: `ConsultationResponseDto` + `adminId`.
+
+예외: 존재하지 않는 상담 조회/수정/삭제/전환 시 404. 필수값 누락/잘못된 상담 상태값은 500(`IllegalArgumentException`, 알려진 이슈).
+
+---
+
+## 9. Treatment / TreatmentCategory (`/treatments`, `/admin/treatments`, `/treatment-categories`, `/admin/treatment-categories`)
+
+### 사용자 (`/treatments`, `/treatment-categories`) — **인증 없이 GET 가능** (`SecurityPaths.PUBLIC_GET_PATTERNS`)
+
+| Method | Path | Request | Response |
+|---|---|---|---|
+| GET | `/treatments/all` | - | `TreatmentResponseDto[]` (노출(`isVisible=true`) 항목만) |
+| GET | `/treatments/category?categoryId=` | `categoryId: number` | `TreatmentResponseDto[]` |
+| GET | `/treatments/{treatmentId}` | - | `TreatmentResponseDto` |
+| GET | `/treatment-categories/all` | - | `CategoryResponseDto[]` (노출 카테고리만) |
+| GET | `/treatment-categories/{categoryId}` | - | `CategoryResponseDto` |
+
+`TreatmentResponseDto` 필드: `treatmentId, treatmentName, description, isReservable` (관리 전용 필드인 `categoryId`/`isVisible`은 사용자 응답에 포함되지 않음)
+`CategoryResponseDto` 필드: `categoryId, categoryName, isVisible, createdAt, updatedAt`
+
+예외: 존재하지 않는 항목/카테고리 조회 시 404 (`ResourceNotFoundException`).
+
+### 관리자 (`/admin/treatments`, `/admin/treatment-categories`)
+
+| Method | Path | Request | Response |
+|---|---|---|---|
+| GET | `/admin/treatments/all` | - | `AdminTreatmentResponseDto[]` |
+| GET | `/admin/treatments/category?categoryId=` | `categoryId: number` | `AdminTreatmentResponseDto[]` |
+| GET | `/admin/treatments/{treatmentId}` | - | `AdminTreatmentResponseDto` |
+| POST | `/admin/treatments/register` | `TreatmentCreateRequestDto` (`categoryId`(필수)`, treatmentName`(필수)`, description, isReservable, isVisible`) | `Integer` |
+| PUT | `/admin/treatments/update` | `TreatmentUpdateRequestDto` (`treatmentId, categoryId`(필수)`, treatmentName`(필수)`, description, isReservable, isVisible`) | `Integer` |
+| DELETE | `/admin/treatments/delete/{treatmentId}` | - | `Integer` |
+| GET | `/admin/treatment-categories/all` | - | `CategoryResponseDto[]` (숨김 포함 전체) |
+| GET | `/admin/treatment-categories/{categoryId}` | - | `CategoryResponseDto` |
+| POST | `/admin/treatment-categories/register` | `CategoryCreateRequestDto` (`categoryName`(필수)`, isVisible`) | `Integer` |
+| PUT | `/admin/treatment-categories/update` | `CategoryUpdateRequestDto` (`categoryId`(필수)`, categoryName`(필수)`, isVisible`) | `Integer` |
+| DELETE | `/admin/treatment-categories/delete/{categoryId}` | - | `Integer` |
+
+`AdminTreatmentResponseDto` 필드: `TreatmentResponseDto` + `categoryId, isVisible, createdAt, updatedAt`
+
+예외: 존재하지 않는 항목/카테고리 조회·수정·삭제 시 404.
+
+---
+
+## 10. StaffSchedule (`/admin/staff-schedules`, 관리자 전용)
+
+| Method | Path | Request | Response |
+|---|---|---|---|
+| POST | `/admin/staff-schedules/register` | `AdminStaffScheduleCreateRequestDto` (`adminId`(필수)`, scheduleDate`(필수)`, scheduleType`(필수, `WORK`/`OFF`)`, memo`) | `Integer` |
+| GET | `/admin/staff-schedules/all` | - | `AdminStaffScheduleResponseDto[]` |
+| GET | `/admin/staff-schedules/admin?adminId=` | `adminId: number` | `AdminStaffScheduleResponseDto[]` |
+| GET | `/admin/staff-schedules/date?scheduleDate=` | `scheduleDate: string(LocalDate, ISO)` | `AdminStaffScheduleResponseDto[]` |
+| GET | `/admin/staff-schedules/type?scheduleType=` | `scheduleType: string` | `AdminStaffScheduleResponseDto[]` |
+| GET | `/admin/staff-schedules/{scheduleId}` | - | `AdminStaffScheduleResponseDto` |
+| PUT | `/admin/staff-schedules/update` | `AdminStaffScheduleUpdateRequestDto` (`scheduleId, adminId, scheduleDate, scheduleType`(모두 필수)`, memo`) | `Integer` |
+| DELETE | `/admin/staff-schedules/delete/{scheduleId}` | - | `Integer` |
+
+`AdminStaffScheduleResponseDto` 필드: `scheduleId, adminId, scheduleDate, scheduleType, memo, createdAt, updatedAt`
+
+예외:
+- 존재하지 않는 일정 조회/수정/삭제 시 404 (`ResourceNotFoundException`, Phase 2에서 교체됨).
+- **동일 관리자 + 동일 날짜에 이미 일정이 존재하면 409 (`DuplicateResourceException`)** — Phase 2에서 새로 추가된 검증(기존에는 검증 자체가 없어 중복 등록이 가능했던 버그).
+- 필수값 누락/잘못된 일정 유형은 500(`IllegalArgumentException`, 알려진 이슈, `@Valid` 적용은 되어 있으나 유형 화이트리스트 검증은 서비스 레벨 로직이라 여전히 `IllegalArgumentException`).
+
+---
+
+## 11. Statistics (`/admin/statistics`, 관리자 전용)
+
+엔티티가 없는 순수 집계 도메인이다. 모든 엔드포인트가 `POST`이며 `@RequestBody`로 조회 조건을 받는다(GET+쿼리스트링이 아님에 유의).
+
+| Method | Path | Request | Response |
+|---|---|---|---|
+| POST | `/admin/statistics/summary` | `StatisticsSearchRequestDto { startDate?, endDate?: LocalDate }` | `AdminStatisticsResponseDto { reservationStatistics, consultationStatistics, inquiryStatistics, treatmentStatistics[] }` |
+| POST | `/admin/statistics/reservations` | 위와 동일 | `ReservationStatisticsResponseDto { totalReservationCount, pendingCount, confirmedCount, completedCount, canceledCount, noShowCount, noShowRate }` |
+| POST | `/admin/statistics/consultations` | 위와 동일 | `ConsultationStatisticsResponseDto { totalConsultationCount, receivedCount, scheduledCount, completedCount, convertedCount, canceledCount, conversionRate }` |
+| POST | `/admin/statistics/inquiries` | 위와 동일 | `InquiryStatisticsResponseDto { totalInquiryCount, waitingCount, answeredCount }` |
+| POST | `/admin/statistics/treatments` | 위와 동일 | `TreatmentStatisticsResponseDto[]` (인기 진료 항목 순위) |
+
+집계 결과가 없거나(DAO가 `null` 반환) 개별 카운트 필드가 `null`이면 서비스 레벨에서 전부 `0`으로 보정한다. `noShowRate`/`conversionRate`는 소수 둘째 자리까지 반올림(`Math.round(x*100.0)/100.0`)하며 총 건수가 0이면 `0.0`을 반환한다(0으로 나누기 방지).
+
+예외: `endDate`가 `startDate`보다 빠르면 400 취지의 검증이지만 현재는 `IllegalArgumentException`이라 500으로 응답된다(알려진 이슈, Statistics는 엔티티 조회가 없어 이번 Phase 2 예외 리트로핏 대상에서 제외됨).
+
+---
+
+## 12. Dashboard (`/admin/dashboard`, 관리자 전용)
+
+Phase 2에서 신규 문서화. 관리자 대시보드 요약 정보를 제공하는 조회 전용 도메인이며, 상세 스펙은 `AdminDashboardController`/`AdminDashboardService`/`AdminDashboardMapper.xml`을 참고할 것 — 본 문서 갱신 시점 기준 별도 요청 조건 DTO 없이 `GET` 요청만으로 요약 데이터를 반환하는 구조다. Reservation/Inquiry 참조 쿼리는 Phase 1의 `u_id` 컬럼명 변경에 맞춰 이미 정리되어 있다(refactor-log.md §3 참고).
+
+---
+
+## 13. Review (`/reviews`, `/admin/reviews`) — Phase 2 신규 도메인
+
+### 사용자 (`/reviews`)
+
+| Method | Path | Request | Response |
+|---|---|---|---|
+| POST | `/reviews/register` | `ReviewCreateRequestDto { treatmentId: number(필수), userId: string(필수), title: string(필수), content: string(필수), imageUrl?, hashTag? }` | `Integer` |
+| GET | `/reviews/all` | - | `ReviewResponseDto[]` (숨김 처리(`isHidden=true`)된 리뷰 제외) |
+| GET | `/reviews/treatment?treatmentId=` | `treatmentId: number` | `ReviewResponseDto[]` (숨김 제외) |
+| GET | `/reviews/{reviewId}` | - | `ReviewResponseDto` (조회 시 `hits` 조회수 1 증가) |
+| PUT | `/reviews/update` | `ReviewUpdateRequestDto { reviewId(필수), userId(필수, 작성자 본인 확인용), title(필수), content(필수), imageUrl?, hashTag? }` | `Integer` |
+| DELETE | `/reviews/delete?reviewId=&userId=` | `reviewId: number, userId: string` | `Integer` |
+
+`ReviewResponseDto` 필드: `reviewId, treatmentId, userId, title, content, imageUrl, hashTag, hits, createdAt, updatedAt` (`isHidden`은 포함하지 않음 — 관리자 전용 정보)
+
+예외:
+- 존재하지 않는 리뷰 조회/수정/삭제 시 404 (`ResourceNotFoundException`)
+- 수정/삭제 요청의 `userId`가 실제 작성자와 다르면 403 (`UnauthorizedActionException`)
+
+**TODO**: `userId`를 요청 바디/쿼리 파라미터로 받는 것은 임시 방편이다 — JWT 인증이 완전히 연동되면 `SecurityContextHolder`에서 인증 주체를 가져오도록 변경해야 한다(Phase 1 `UserController`와 동일한 패턴의 TODO).
+
+### 관리자 (`/admin/reviews`) — 모더레이션
+
+| Method | Path | Request | Response |
+|---|---|---|---|
+| GET | `/admin/reviews/all` | - | `AdminReviewResponseDto[]` (숨김 리뷰 포함 전체) |
+| PUT | `/admin/reviews/hide?reviewId=&isHidden=` | `reviewId: number, isHidden?: boolean(기본값 true)` | `Integer` (숨김/노출 전환 — `isHidden=false`로 호출하면 다시 노출) |
+| DELETE | `/admin/reviews/delete?reviewId=` | `reviewId: number` | `Integer` (작성자 제한 없이 삭제 가능) |
+
+`AdminReviewResponseDto` 필드: `ReviewResponseDto` + `isHidden`
+
+예외: 존재하지 않는 리뷰 조회/숨김처리/삭제 시 404.
+
+**참고**: `GET /reviews/**`는 로그인 전 리뷰 둘러보기가 자연스러운 유스케이스이지만, 이번 Phase 2에서는 `SecurityPaths`/`SecurityConfig`를 직접 수정하지 않았다(오케스트레이팅 세션의 판단 필요 항목 — refactor-log.md Phase 2 §6 참고). 문서화 시점 기준 `/reviews/**`도 `anyRequest().authenticated()`에 걸려 인증이 필요한 상태다.
+
+---
+
+## 알려진 이슈 / 프론트엔드 유의사항 (Phase 2 추가)
+
+7. `Consultation`/`Treatment`/`TreatmentCategory`/`StaffSchedule`/`Statistics`/`Dashboard`는 Phase 1 문서화 당시 누락되어 있었고, 이번 Phase 2에서 처음 문서화되었다(§8~§12).
+8. `StaffSchedule` 등록/수정은 Phase 2부터 동일 관리자+날짜 중복 등록을 409로 차단한다 — 이전에는 중복 등록이 가능했던 버그였으니 프론트에서 "이미 등록된 일정" 케이스(409) 처리를 새로 추가해야 한다.
+9. `Review`는 Phase 2 신규 도메인이며, 작성자 본인 확인이 요청 바디의 `userId` 값 비교로 이루어진다(JWT 인증 미완료 상태의 임시 구현) — 프론트가 로그인한 사용자의 `uId`를 정확히 실어 보내지 않으면 항상 403이 발생한다.
+10. `Consultation`/`Treatment`/`TreatmentCategory`의 필수값 누락/잘못된 값 검증은 Phase 2에서 `@Valid`(400, 필드별 에러 메시지 포함)로 일부 전환되었으나, 서비스 레벨의 상태값 화이트리스트 검증(예: `consultationStatus`가 RECEIVED/SCHEDULED/... 중 하나인지)은 여전히 `IllegalArgumentException`(500)으로 남아있다 — Phase 3에서 `@Pattern`/enum 기반 검증 또는 전용 400 예외 도입을 검토할 것.
