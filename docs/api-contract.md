@@ -24,22 +24,26 @@
 - Response: `Integer` (insert된 row 수, 보통 1)
 - 예외: 아이디/이메일 중복 시 409 (`DuplicateResourceException`)
 
-### GET `/api/user/mypage?uId={uId}` — 마이페이지 조회
-- Query: `uId: string`
-  - TODO: JWT 연동 후 인증 주체에서 획득하도록 변경 예정 (현재는 쿼리 파라미터)
+### GET `/api/user/mypage` — 마이페이지 조회
+- 파라미터 없음 — 대상 계정은 `Authorization` 헤더의 JWT 인증 주체로 결정된다(더 이상 `uId` 쿼리 파라미터를 받지 않음 — 다른 사용자의 uId를 지정해 정보를 열람할 수 있던 문제를 막기 위해 변경됨).
 - Response: `UserMypageResponseDto`
   - `uId, uName, uEmail, uPhone, uBirth(LocalDate), uGender`
 - 예외: 존재하지 않으면 404 (`ResourceNotFoundException`)
 
 ### PUT `/api/user/mypage/update` — 마이페이지 수정
 - Request Body: `UserMypageUpdateRequestDto`
-  - `uId: string` (필수)
-  - `uName, uPhone, uBirth(LocalDate), uGender`
+  - `uName, uPhone, uBirth(LocalDate), uGender` (더 이상 `uId` 필드를 받지 않음 — 대상은 JWT 인증 주체)
 - Response: `Integer` (update된 row 수)
 - 예외: 존재하지 않으면 404
 
-### DELETE `/api/user/withdraw?uId={uId}` — 회원 탈퇴
-- Query: `uId: string`
+### PUT `/api/user/password` — 비밀번호 변경 (신규)
+- Request Body: `UserPasswordUpdateRequestDto { currentPwd: string(필수), newPwd: string(필수, 8~20자, 영문+숫자+특수문자 포함) }`
+- 대상 계정은 JWT 인증 주체로 결정된다.
+- Response: `Integer` (update된 row 수)
+- 예외: 존재하지 않으면 404, 현재 비밀번호 불일치 시 401 (`InvalidCredentialsException`)
+
+### DELETE `/api/user/withdraw` — 회원 탈퇴
+- 파라미터 없음 — 대상 계정은 JWT 인증 주체로 결정된다.
 - Response: `Integer` (delete된 row 수)
 - 예외: 존재하지 않으면 404
 
@@ -73,6 +77,12 @@
 - Request Body: `ReservationCreateRequestDto`
   - `uId: string`, `treatmentId: number`, `reservationDate(LocalDate)`, `reservationTime(LocalTime)`, `memberMemo: string`
 - Response: `Integer`
+- 예외: 동일 날짜+시간에 이미 유효한(취소/노쇼 아닌) 예약이 있으면 409 (`DuplicateResourceException`, 신규 — 서버가 중복 예약 자체를 막는다)
+
+### GET `/reservations/disabled-times?reservationDate={date}` — 예약 마감 시간대 조회 (신규, permitAll)
+- Query: `reservationDate: string (LocalDate, YYYY-MM-DD)`
+- Response: `string[] (LocalTime, "HH:mm:ss")` — 해당 날짜에 이미 예약이 차있는 시간 목록(취소/노쇼 제외). 예약 폼에서 이 시간들을 선택 불가로 비활성화하는 데 사용.
+- 인증 불필요 (로그인 전에도 예약 가능 여부를 확인할 수 있어야 하므로)
 
 ### GET `/reservations/member?uId={uId}` — 회원별 예약 목록
 - Response: `ReservationResponseDto[]`
@@ -85,6 +95,7 @@
 ### PUT `/reservations/update` — 예약 수정
 - Request Body: `ReservationUpdateRequestDto` (`reservationId, uId, treatmentId, reservationDate, reservationTime, memberMemo`)
 - Response: `Integer`
+- 예외: 변경하려는 날짜+시간에 이미 다른 유효한 예약이 있으면 409 (`DuplicateResourceException`, 자기 자신은 제외하고 검사)
 
 ### PUT `/reservations/cancel` — 예약 취소
 - Request Body: `ReservationCancelRequestDto` (`reservationId, uId`)
@@ -224,7 +235,7 @@
 
 1. **User 도메인만 `/api/...` 접두사**를 쓰고, 나머지 Phase 1 도메인(Reservation/Notice/Inquiry/Admin)은 기존 경로(`/reservations`, `/notices`, `/inquiries`, `/admin/...`)를 그대로 유지한다. 경로 컨벤션 통일은 하지 않기로 확정.
 2. Reservation/Inquiry의 `memberId`(number)는 전부 `uId`(string)로 변경되었다 — 기존에 프론트가 숫자 회원 ID를 넘기고 있었다면 로그인 ID(문자열)로 바꿔야 한다.
-3. `/api/user/**`, `/api/admin/**`, 접두사 없는 `/admin/**`(예: `/admin/reservations`, `/admin/staff-schedules`)는 모두 SecurityConfig에 의해 ADMIN/SUPERADMIN(또는 USER 이상) 권한이 필요하다 (`register`/`login`/`refresh`/`admin/login`/`oauth2/**` 및 `GET /treatments/**`, `GET /treatment-categories/**`, `GET /reviews/**`는 예외). 리팩토링 이전에는 인증 자체가 없었으므로, 프론트에서 이 경로들을 호출할 때 `Authorization` 헤더를 붙여야 한다.
+3. `/api/user/**`, `/api/admin/**`, 접두사 없는 `/admin/**`(예: `/admin/reservations`, `/admin/staff-schedules`)는 모두 SecurityConfig에 의해 ADMIN/SUPERADMIN(또는 USER 이상) 권한이 필요하다 (`register`/`login`/`refresh`/`admin/login`/`oauth2/**` 및 `GET /treatments/**`, `GET /treatment-categories/**`, `GET /reviews/**`, `GET /reservations/disabled-times`는 예외). 리팩토링 이전에는 인증 자체가 없었으므로, 프론트에서 이 경로들을 호출할 때 `Authorization` 헤더를 붙여야 한다.
 4. Google/Kakao OAuth 클라이언트 ID/Secret은 로컬 `application.properties`에서 빈 값(`${GOOGLE_CLIENT_ID:}` 등)으로 기본 설정되어 있다 — 로컬에서 소셜 로그인을 테스트하려면 환경변수로 실제 값을 주입해야 한다.
 
 ### 해결된 이슈 (참고용 — 이전 버전 문서를 봤다면 최신 상태로 갱신됨)

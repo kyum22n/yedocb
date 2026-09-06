@@ -374,3 +374,32 @@ Frontend(yedocf) 세션이 Phase 5 착수 전 기존 화면 재정합 중 발견
 **수정**: 기존 공용 `TokenResponseDto`를 그대로 확장하는 대신, 관리자 전용 `AdminTokenResponseDto { accessToken, adminId, adminLoginId, adminRole }`를 신설해 `AdminLoginController`가 이를 반환하도록 바꿨다(프로젝트 컨벤션상 컨트롤러는 `ResponseEntity<정확한DTO타입>`을 반환해야 하므로, User/OAuth 로그인에는 해당 없는 필드를 공용 DTO에 얹기보다 전용 타입을 만드는 쪽을 택함). `adminRole`은 이미 JWT의 `roles` 클레임에도 들어있지만(프론트가 원한다면 토큰을 디코드해서 꺼낼 수도 있음), 로그인 응답에 평문으로 내려줘서 프론트가 토큰을 디코드하지 않고도 SUPERADMIN 전용 메뉴 분기를 할 수 있게 했다.
 
 로컬 서버에서 `POST /api/admin/login` 실제 호출 → `{"accessToken":"...","adminId":2,"adminLoginId":"admin1","adminRole":"SUPERADMIN"}` 응답 확인, `./gradlew test` 38개 전원 통과 재확인.
+
+## 6. 예약 중복 방지 + 마감 시간대 조회 (프론트엔드 세션 요청 대응, 우선순위 1)
+
+Frontend 세션이 Phase 4b 화면 재정합 중 계약에 없어 제거해뒀던 기능. B의 `SecurityConfig`에 `/api/reserve/disabled-times`가 permitAll로 등록되어 있던 것으로 보아 B에도 이 기능이 있었을 것으로 추정되나, A의 Reservation 도메인은 별도로 구축되어 이 기능이 없었다.
+
+단순히 "이미 예약된 시간 목록 조회" API만 추가하는 데 그치지 않고, **서버 쪽에서 실제로 동일 날짜+시간 중복 예약 자체를 막는 검증**도 함께 추가했다 — 조회 API는 UX(비활성화 표시)만 개선할 뿐, 클라이언트가 그 값을 무시하고 그대로 요청을 보내거나 두 사용자가 동시에 같은 시간을 예약하는 경쟁 상황(race condition)을 막지는 못하기 때문이다.
+
+- `ReservationDao.selectReservedTimesByDate(date)`: 취소(CANCELED)/노쇼(NO_SHOW) 상태를 제외한 예약 시간 목록 조회
+- `ReservationDao.existsConflictingReservation(date, time, excludeReservationId)`: 동일 날짜+시간에 유효한 예약이 있는지 확인(수정 시 자기 자신은 제외)
+- `ReservationService.createReservation`/`modifyReservation`이 등록/수정 시 이 검증을 거쳐 충돌하면 `DuplicateResourceException`(409)을 던짐
+- `GET /reservations/disabled-times?reservationDate=`: 인증 불필요(permitAll GET) — 로그인 전에도 예약 가능 시간을 확인할 수 있어야 하므로 `SecurityPaths.PUBLIC_GET_PATTERNS`에 추가
+
+**실제 검증**: 로컬에서 `POST /reservations/register`로 같은 날짜/시간에 두 번 예약 시도 → 두 번째 요청이 `409 DuplicateResourceException` 확인, 이후 `GET /reservations/disabled-times`에 해당 시간이 포함됨을 확인.
+
+## 7. 마이페이지 비밀번호 변경 기능 부재 (프론트엔드 세션 요청 대응, 우선순위 2) + 마이페이지 인가 우회 문제 함께 정리
+
+Frontend 세션이 요청한 비밀번호 변경 기능(`PUT /api/user/password`)을 추가하면서, `UserController`에 이미 남아있던 TODO("uId를 쿼리 파라미터 대신 인증 주체에서 획득하도록 변경할 것" — 인증 인프라가 아직 없던 시점에 남긴 임시 구현 표시)도 함께 해결했다. Review와 동일한 유형의 문제였다: `GET /api/user/mypage?uId=`, `PUT /api/user/mypage/update`(바디의 `uId`), `DELETE /api/user/withdraw?uId=`가 전부 클라이언트가 지정한 `uId`를 그대로 신뢰하고 있어서, 로그인한 사용자라면 누구든 다른 사용자의 `uId`를 지정해 그 사람의 마이페이지를 열람/수정/탈퇴시킬 수 있었다. 비밀번호 변경 기능을 이 패턴 그대로(요청 바디에 uId) 추가했다면 동일한 취약점이 새로 생기는 셈이라, 이번 기회에 마이페이지 전체를 인증 주체 기반으로 통일했다.
+
+- `UserMypageUpdateRequestDto`에서 `uId` 필드 제거
+- `UserController.getMyPage`/`updateMyPage`/`withdrawUser`가 쿼리 파라미터/요청 바디의 `uId` 대신 `Authentication.getName()`을 사용하도록 변경
+- `UserService.modifyUser(request, authenticatedUserId)`로 시그니처 변경(`removeUser`는 기존 시그니처 유지, 호출부만 변경)
+- 신규 `UserPasswordUpdateRequestDto { currentPwd, newPwd }` + `UserService.changePassword(request, authenticatedUserId)`: 현재 비밀번호를 `PasswordEncoder.matches`로 확인한 뒤에만 변경 허용(불일치 시 `InvalidCredentialsException`, 401)
+- `UserDao.updatePassword(uId, encodedPwd)` + `UserMapper.xml` 추가
+
+**실제 검증**: 로컬에서 `GET /api/user/mypage`를 파라미터 없이 토큰만으로 호출 → 정상 조회 확인. 틀린 현재 비밀번호로 변경 시도 → 401 확인. 올바른 현재 비밀번호로 변경 → 200, 이후 새 비밀번호로 재로그인 성공까지 확인. `UserServiceTest`에 비밀번호 변경 관련 테스트 3개 추가, `./gradlew test` 41개 전원 통과 확인.
+
+## 8. 아이디/비밀번호 찾기 (우선순위 3, 미착수)
+
+Frontend 세션이 요청한 세 가지 중 우선순위가 가장 낮은 항목으로, 이번 턴에서는 착수하지 않았다. 이메일 발송 인프라(SMTP 설정, 인증 코드/임시 비밀번호 발급 로직)가 필요하고 UX 설계 결정(아이디를 이메일로 보낼지 화면에 바로 보여줄지, 비밀번호를 임시 비밀번호로 재설정할지 재설정 링크 방식으로 할지)이 남아있어 별도로 다룰 예정이다.
