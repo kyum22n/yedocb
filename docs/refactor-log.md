@@ -403,3 +403,27 @@ Frontend 세션이 요청한 비밀번호 변경 기능(`PUT /api/user/password`
 ## 8. 아이디/비밀번호 찾기 (우선순위 3, 미착수)
 
 Frontend 세션이 요청한 세 가지 중 우선순위가 가장 낮은 항목으로, 이번 턴에서는 착수하지 않았다. 이메일 발송 인프라(SMTP 설정, 인증 코드/임시 비밀번호 발급 로직)가 필요하고 UX 설계 결정(아이디를 이메일로 보낼지 화면에 바로 보여줄지, 비밀번호를 임시 비밀번호로 재설정할지 재설정 링크 방식으로 할지)이 남아있어 별도로 다룰 예정이다.
+
+## 9. Phase 5 진행 중 Frontend 세션이 보류한 판단 4가지 대응
+
+### 9-1. 예약 등록 응답이 insert row count인지 PK인지 불명확 (실제 버그)
+
+`AdminReservationService.createReservation`/`ReservationService.createReservation`가 `adminReservationDao.insertReservation(reservation)`/`reservationDao.insertReservation(reservation)`의 **반환값**(영향받은 row 수, 항상 1)을 그대로 리턴하고 있었다. 정작 MyBatis는 `useGeneratedKeys="true" keyProperty="reservationId"` 설정 덕분에 insert 직후 `reservation` 엔티티 객체 자체에 생성된 PK를 채워주고 있었는데, 이 값을 응답으로 내보내지 않고 있었던 것 — 그래서 문서에도 "Integer"라고만 적혀 있고 의미가 불명확했다. 상담→예약 전환(`PUT /admin/consultations/convert`)이 기존 예약의 `reservationId`를 요구하는 것과 맞물려, 관리자가 방금 등록한 예약의 ID를 알아낼 방법이 아예 없는 실질적 블로커였다.
+
+**수정**: 두 서비스 메소드 모두 insert 후 `reservation.getReservationId()`를 반환하도록 변경(리턴 타입 `int` -> `Integer`). DAO 호출 자체는 그대로 두고 반환값만 무시하도록 바꿨다. 기존에 이 두 서비스에 대한 단위 테스트가 없어서 회귀 위험 없이 안전하게 변경 가능했다.
+
+**상담→예약 전환 플로우 확정**: `PUT /admin/consultations/convert`는 예약을 새로 만들지 않고 기존 예약을 상담에 연결(링크)만 한다 — `AdminConsultationMapper.convertConsultationToReservation` SQL을 확인한 결과 `reservation_id`, `admin_id`, `consultation_memo`를 갱신하면서 `consultation_status`를 `CONVERTED`로 자동 변경한다(별도 상태 변경 호출 불필요, 이 부분도 문서에 없던 사실이라 함께 확정 기록). 따라서 올바른 프론트 플로우는: ① `POST /admin/reservations/register`로 예약 등록 → 응답의 `reservationId` 획득 → ② 그 ID로 `PUT /admin/consultations/convert` 호출. 관리자가 예약 등록 시점에 일정/담당자를 조정할 여지를 남기기 위해 일부러 2단계로 분리된 설계로 보고, convert가 내부적으로 예약을 자동 생성하는 방식으로 재설계하지는 않기로 했다(더 단순한 수정으로 동일 문제 해결 가능했기 때문).
+
+**실제 검증**: 로컬에서 예약 등록 → 응답으로 실제 `reservationId`(row count 아님) 수신 확인 → 그 ID로 상담 전환 호출 → 200 성공 확인.
+
+### 9-2. `TreatmentStatisticsResponseDto` 필드명 미문서화
+
+`treatmentId: Integer, treatmentName: String, reservationCount: Integer` — 실제 클래스를 읽어 확정, `docs/api-contract.md` §11에 반영. 프론트가 추측했던 `count`가 아니라 `reservationCount`가 정확한 필드명이다.
+
+### 9-3. `GET /admin/dashboard` 응답 스펙 미문서화
+
+`AdminDashboardResponseDto` 실제 필드(`todayReservationCount, pendingReservationCount, todayConsultationCount, waitingInquiryCount, pmsFailedCount, recentReservations(AdminReservationResponseDto[]), recentInquiries(AdminInquiryResponseDto[])`)를 확인해 `docs/api-contract.md` §12에 표로 반영(이전에는 "컨트롤러/서비스/매퍼 참고"로만 안내되어 있었음).
+
+### 9-4. `GET /reviews/**` 인증 요구 — 프론트 정보가 이미 stale함을 확인
+
+Frontend 세션은 "설계 의도는 permitAll이지만 SecurityConfig가 아직 갱신 전이라 실제로는 인증 필요"라고 알고 있었으나, 이 문제는 커밋 `bf4a1ca`(§"알려진 이슈 정리" 단계)에서 이미 해결되어 현재 `SecurityPaths.PUBLIC_GET_PATTERNS`에 `"/reviews/**"`가 포함되어 있다. 로컬 서버로 `GET /reviews/all`을 `Authorization` 헤더 없이 직접 호출해 `200`과 정상 응답을 재확인했다. 프론트가 참고하던 정보(아마도 `docs/test-report.md`에 남긴 이전 시점 메모)가 최신 상태를 반영하지 못한 것으로 보이며, 별도의 백엔드 수정은 필요 없었다.

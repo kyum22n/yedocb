@@ -76,7 +76,7 @@
 ### POST `/reservations/register` — 예약 등록
 - Request Body: `ReservationCreateRequestDto`
   - `uId: string`, `treatmentId: number`, `reservationDate(LocalDate)`, `reservationTime(LocalTime)`, `memberMemo: string`
-- Response: `Integer`
+- Response: `Integer` — **생성된 예약의 PK(`reservationId`)**. insert row count가 아니다(이전 문서에 명시가 없어 혼동 소지가 있었음 — 확정).
 - 예외: 동일 날짜+시간에 이미 유효한(취소/노쇼 아닌) 예약이 있으면 409 (`DuplicateResourceException`, 신규 — 서버가 중복 예약 자체를 막는다)
 
 ### GET `/reservations/disabled-times?reservationDate={date}` — 예약 마감 시간대 조회 (신규, permitAll)
@@ -105,7 +105,7 @@
 
 | Method | Path | Request | Response |
 |---|---|---|---|
-| POST | `/admin/reservations/register` | `AdminReservationCreateRequestDto` (`uId, treatmentId, adminId, reservationDate, reservationTime, reservationStatus, memberMemo, adminMemo, pmsSyncStatus`) | `Integer` |
+| POST | `/admin/reservations/register` | `AdminReservationCreateRequestDto` (`uId, treatmentId, adminId, reservationDate, reservationTime, reservationStatus, memberMemo, adminMemo, pmsSyncStatus`) | `Integer` (**생성된 예약의 PK** `reservationId`, insert row count 아님 — 상담→예약 전환 시 이 값을 `AdminConsultationConvertRequestDto.reservationId`에 사용) |
 | GET | `/admin/reservations/all` | - | `AdminReservationResponseDto[]` |
 | GET | `/admin/reservations/member?uId=` | `uId: string` | `AdminReservationResponseDto[]` |
 | GET | `/admin/reservations/admin?adminId=` | `adminId: number` | `AdminReservationResponseDto[]` |
@@ -281,12 +281,21 @@
 | GET | `/admin/consultations/{consultationId}` | - | `AdminConsultationResponseDto` |
 | PUT | `/admin/consultations/update` | `AdminConsultationUpdateRequestDto` (`consultationId`(필수)`, reservationId, treatmentId, adminId, consultationStatus, consultationMemo, preferredDate, preferredTime`) | `Integer` |
 | PUT | `/admin/consultations/status/update` | `AdminConsultationStatusUpdateRequestDto` (`consultationId`(필수)`, adminId, consultationStatus`(필수)`, consultationMemo`) | `Integer` |
-| PUT | `/admin/consultations/convert` | `AdminConsultationConvertRequestDto` (`consultationId, reservationId`(모두 필수)`, adminId, consultationMemo`) | `Integer` (상담을 예약으로 전환) |
+| PUT | `/admin/consultations/convert` | `AdminConsultationConvertRequestDto` (`consultationId, reservationId`(모두 필수)`, adminId, consultationMemo`) | `Integer` (상담에 기존 예약을 연결 — 아래 "전환 플로우" 참고) |
 | DELETE | `/admin/consultations/delete/{consultationId}` | - | `Integer` |
 
 `AdminConsultationResponseDto` 필드: `ConsultationResponseDto` + `adminId`.
 
 예외: 존재하지 않는 상담 조회/수정/삭제/전환 시 404. 필수값 누락/잘못된 상담 상태값은 400 (`IllegalArgumentException` -> GlobalExceptionHandler 매핑).
+
+### 상담 → 예약 전환 플로우 (`PUT /admin/consultations/convert`)
+
+**이 엔드포인트는 예약을 새로 생성하지 않는다** — 이미 존재하는 예약의 `reservationId`를 상담(`Consultation.reservationId`)에 연결(링크)만 한다. 신청 정보를 예약으로 옮기는 화면이라면, 관리자가 아래 순서로 2단계에 걸쳐 호출해야 한다:
+
+1. `POST /admin/reservations/register`를 호출해 예약을 등록한다(상담 신청 정보 — `uId`, `treatmentId`, 희망 일시 등 — 을 그대로 채워서). 응답으로 **생성된 예약의 `reservationId`(PK)** 를 받는다.
+2. 그 `reservationId`를 `PUT /admin/consultations/convert`의 요청 바디에 넣어 호출한다. 상담의 `reservationId`가 채워지고 `consultationStatus`가 자동으로 `CONVERTED`로 바뀐다(별도 상태 변경 호출 불필요 — `AdminConsultationMapper.convertConsultationToReservation` SQL이 한 번에 처리).
+
+이렇게 나눠져 있는 이유: 관리자가 예약을 등록하기 전에 일정/담당자를 조정하거나 예약 정보를 수정할 여지를 남겨두기 위함(convert가 내부적으로 예약을 자동 생성하면 이 조정 단계가 사라짐). "생성과 동시에 전환"을 한 번의 클릭으로 처리하고 싶다면 프론트에서 1→2를 연속 호출하면 된다.
 
 ---
 
@@ -363,6 +372,8 @@
 | POST | `/admin/statistics/inquiries` | 위와 동일 | `InquiryStatisticsResponseDto { totalInquiryCount, waitingCount, answeredCount }` |
 | POST | `/admin/statistics/treatments` | 위와 동일 | `TreatmentStatisticsResponseDto[]` (인기 진료 항목 순위) |
 
+`TreatmentStatisticsResponseDto` 필드: `treatmentId: number, treatmentName: string, reservationCount: number` (프론트에서 추측했던 `count`가 아니라 `reservationCount`가 정확한 필드명).
+
 집계 결과가 없거나(DAO가 `null` 반환) 개별 카운트 필드가 `null`이면 서비스 레벨에서 전부 `0`으로 보정한다. `noShowRate`/`conversionRate`는 소수 둘째 자리까지 반올림(`Math.round(x*100.0)/100.0`)하며 총 건수가 0이면 `0.0`을 반환한다(0으로 나누기 방지).
 
 예외: `endDate`가 `startDate`보다 빠르면 400 (`IllegalArgumentException` -> GlobalExceptionHandler 매핑. Statistics는 엔티티 조회가 없어 `ResourceNotFoundException` 리트로핏 대상에서는 제외되었으나, 공통 `IllegalArgumentException` 400 매핑은 동일하게 적용됨).
@@ -371,7 +382,20 @@
 
 ## 12. Dashboard (`/admin/dashboard`, 관리자 전용)
 
-Phase 2에서 신규 문서화. 관리자 대시보드 요약 정보를 제공하는 조회 전용 도메인이며, 상세 스펙은 `AdminDashboardController`/`AdminDashboardService`/`AdminDashboardMapper.xml`을 참고할 것 — 본 문서 갱신 시점 기준 별도 요청 조건 DTO 없이 `GET` 요청만으로 요약 데이터를 반환하는 구조다. Reservation/Inquiry 참조 쿼리는 Phase 1의 `u_id` 컬럼명 변경에 맞춰 이미 정리되어 있다(refactor-log.md §3 참고).
+| Method | Path | Request | Response |
+|---|---|---|---|
+| GET | `/admin/dashboard` | 없음 (쿼리 파라미터/바디 모두 없음) | `AdminDashboardResponseDto` |
+
+`AdminDashboardResponseDto` 필드:
+- `todayReservationCount: number` — 오늘 날짜 예약 건수
+- `pendingReservationCount: number` — 대기(`PENDING`) 상태 예약 건수
+- `todayConsultationCount: number` — 오늘 접수된 상담 건수
+- `waitingInquiryCount: number` — 답변 대기(`WAITING`) 문의 건수
+- `pmsFailedCount: number` — PMS 연동 실패(`pmsSyncStatus=FAILED`) 예약 건수
+- `recentReservations: AdminReservationResponseDto[]` — 최근 예약 목록(§3 참고)
+- `recentInquiries: AdminInquiryResponseDto[]` — 최근 문의 목록(§6 참고)
+
+Reservation/Inquiry 참조 쿼리는 Phase 1의 `u_id` 컬럼명 변경에 맞춰 이미 정리되어 있다(refactor-log.md §3 참고).
 
 ---
 
