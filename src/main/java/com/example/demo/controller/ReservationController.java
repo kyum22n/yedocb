@@ -1,5 +1,7 @@
 package com.example.demo.controller;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,13 @@ public class ReservationController {
     @PostMapping("/register")
     public ResponseEntity<Integer> registerReservation(@RequestBody ReservationCreateRequestDto request) {
         return ResponseEntity.ok(reservationService.createReservation(request));
+    }
+
+    // 예약 마감 시간대 조회 (예약 폼에서 이미 예약된 시간을 비활성화하기 위함, 인증 불필요)
+    @GetMapping("/disabled-times")
+    public ResponseEntity<List<LocalTime>> getDisabledTimes(
+            @RequestParam("reservationDate") LocalDate reservationDate) {
+        return ResponseEntity.ok(reservationService.getDisabledTimes(reservationDate));
     }
 
     // 회원별 예약 목록 조회

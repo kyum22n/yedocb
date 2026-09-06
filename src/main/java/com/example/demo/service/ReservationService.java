@@ -1,7 +1,10 @@
 package com.example.demo.service;
 
+import com.example.demo.exception.DuplicateResourceException;
 import com.example.demo.exception.ResourceNotFoundException;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,6 +57,10 @@ public class ReservationService {
             throw new IllegalArgumentException("예약 시간은 필수입니다.");
         }
 
+        if(reservationDao.existsConflictingReservation(request.getReservationDate(), request.getReservationTime(), null)) {
+            throw new DuplicateResourceException("이미 예약이 있는 시간입니다.");
+        }
+
         Reservation reservation = new Reservation();
         reservation.setUId(request.getUId());
         reservation.setTreatmentId(request.getTreatmentId());
@@ -62,6 +69,16 @@ public class ReservationService {
         reservation.setMemberMemo(request.getMemberMemo());
 
         return reservationDao.insertReservation(reservation);
+    }
+
+    // 예약 마감 시간대 조회 (특정 날짜에 이미 예약이 차있는 시간 목록 - 예약 폼에서 비활성화용)
+    public List<LocalTime> getDisabledTimes(LocalDate reservationDate) {
+
+        if(reservationDate == null) {
+            throw new IllegalArgumentException("예약 일자는 필수입니다.");
+        }
+
+        return reservationDao.selectReservedTimesByDate(reservationDate);
     }
 
     // 회원별 예약 목록 조회
@@ -154,6 +171,10 @@ public class ReservationService {
 
         if(existingReservation == null) {
             throw new ResourceNotFoundException("존재하지 않는 예약입니다.");
+        }
+
+        if(reservationDao.existsConflictingReservation(request.getReservationDate(), request.getReservationTime(), request.getReservationId())) {
+            throw new DuplicateResourceException("이미 예약이 있는 시간입니다.");
         }
 
         Reservation reservation = new Reservation();

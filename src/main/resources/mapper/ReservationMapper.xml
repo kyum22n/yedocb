@@ -14,6 +14,27 @@
         VALUES (#{uId}, #{treatmentId}, #{reservationDate}, #{reservationTime}, #{memberMemo}, NOW(), NOW()) 
     </insert>
 
+    <!--예약 마감 시간대 조회 (취소/노쇼 제외)-->
+    <select id="selectReservedTimesByDate" resultType="java.time.LocalTime">
+        SELECT reservation_time
+        FROM reservation
+        WHERE reservation_date = #{reservationDate}
+          AND reservation_status NOT IN ('CANCELED', 'NO_SHOW')
+        ORDER BY reservation_time
+    </select>
+
+    <!--동일 날짜/시간 중복 예약 여부 확인 (수정 시 자기 자신 제외)-->
+    <select id="existsConflictingReservation" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM reservation
+        WHERE reservation_date = #{reservationDate}
+          AND reservation_time = #{reservationTime}
+          AND reservation_status NOT IN ('CANCELED', 'NO_SHOW')
+          <if test="excludeReservationId != null">
+              AND reservation_id != #{excludeReservationId}
+          </if>
+    </select>
+
     <!--예약 내역 조회-->
     <select id="selectReservationsByUId" resultType="com.example.demo.entity.Reservation">
         SELECT reservation_id, u_id, treatment_id, admin_id, reservation_date, reservation_time, reservation_status, member_memo, admin_memo, pms_sync_status, created_at, updated_at

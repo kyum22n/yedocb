@@ -35,6 +35,7 @@ public final class SecurityPaths {
     public static final List<String> PUBLIC_GET_PATTERNS = List.of(
         "/treatments/**",
         "/treatment-categories/**",
-        "/reviews/**"
+        "/reviews/**",
+        "/reservations/disabled-times"
     );
 }
