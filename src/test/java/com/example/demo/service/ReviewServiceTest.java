@@ -62,13 +62,12 @@ class ReviewServiceTest {
     void 리뷰등록_성공() {
         ReviewCreateRequestDto request = new ReviewCreateRequestDto();
         request.setTreatmentId(10);
-        request.setUserId("testuser");
         request.setTitle("좋아요");
         request.setContent("만족스러운 시술이었습니다.");
 
         when(reviewDao.insertReview(any(Review.class))).thenReturn(1);
 
-        int result = reviewService.createReview(request);
+        int result = reviewService.createReview(request, "testuser");
 
         assertThat(result).isEqualTo(1);
         verify(reviewDao).insertReview(any(Review.class));
@@ -108,13 +107,12 @@ class ReviewServiceTest {
     void 리뷰수정_작성자본인이아니면_UnauthorizedActionException() {
         ReviewUpdateRequestDto request = new ReviewUpdateRequestDto();
         request.setReviewId(1);
-        request.setUserId("otheruser");
         request.setTitle("수정된 제목");
         request.setContent("수정된 내용");
 
         when(reviewDao.selectReviewById(1)).thenReturn(existingReview);
 
-        assertThatThrownBy(() -> reviewService.modifyReview(request))
+        assertThatThrownBy(() -> reviewService.modifyReview(request, "otheruser"))
                 .isInstanceOf(UnauthorizedActionException.class);
     }
 
@@ -122,13 +120,12 @@ class ReviewServiceTest {
     void 리뷰수정_존재하지않으면_ResourceNotFoundException() {
         ReviewUpdateRequestDto request = new ReviewUpdateRequestDto();
         request.setReviewId(999);
-        request.setUserId("testuser");
         request.setTitle("수정된 제목");
         request.setContent("수정된 내용");
 
         when(reviewDao.selectReviewById(999)).thenReturn(null);
 
-        assertThatThrownBy(() -> reviewService.modifyReview(request))
+        assertThatThrownBy(() -> reviewService.modifyReview(request, "testuser"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -136,14 +133,13 @@ class ReviewServiceTest {
     void 리뷰수정_작성자본인이면_성공() {
         ReviewUpdateRequestDto request = new ReviewUpdateRequestDto();
         request.setReviewId(1);
-        request.setUserId("testuser");
         request.setTitle("수정된 제목");
         request.setContent("수정된 내용");
 
         when(reviewDao.selectReviewById(1)).thenReturn(existingReview);
         when(reviewDao.updateReview(any(Review.class))).thenReturn(1);
 
-        int result = reviewService.modifyReview(request);
+        int result = reviewService.modifyReview(request, "testuser");
 
         assertThat(result).isEqualTo(1);
     }

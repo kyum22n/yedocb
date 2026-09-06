@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,9 +30,8 @@ import jakarta.validation.Valid;
  * 수정 이력
  * ===============================
  * 2026-09-06 | 리팩토링 | Review 도메인 신규 생성 (Phase 2)
- *
- * TODO: JWT 인증이 완전히 연동되면 update/delete의 userId는 쿼리 파라미터/요청 바디 대신
- *       SecurityContextHolder / @AuthenticationPrincipal로 획득한 인증 주체에서 가져오도록 변경할 것.
+ * 2026-09-06 | 리팩토링 | 작성자 식별을 요청 바디 대신 인증 주체(Authentication)에서 획득하도록 수정
+ *                        (알려진 이슈 정리 — 요청 바디의 userId를 신뢰하던 인가 우회 문제 해결)
  */
 @RestController
 @RequestMapping("/reviews")
@@ -40,10 +40,12 @@ public class ReviewController {
     @Autowired
     private ReviewService reviewService;
 
-    // 리뷰 등록
+    // 리뷰 등록 (작성자 = 인증된 본인, JwtAuthenticationFilter가 설정한 Authentication.getName())
     @PostMapping("/register")
-    public ResponseEntity<Integer> registerReview(@Valid @RequestBody ReviewCreateRequestDto request) {
-        return ResponseEntity.ok(reviewService.createReview(request));
+    public ResponseEntity<Integer> registerReview(
+            @Valid @RequestBody ReviewCreateRequestDto request,
+            Authentication authentication) {
+        return ResponseEntity.ok(reviewService.createReview(request, authentication.getName()));
     }
 
     // 리뷰 목록 조회
@@ -65,17 +67,19 @@ public class ReviewController {
         return ResponseEntity.ok(reviewService.getReviewById(reviewId));
     }
 
-    // 리뷰 수정
+    // 리뷰 수정 (작성자 본인만 가능 - 본인 확인은 인증 주체 기준)
     @PutMapping("/update")
-    public ResponseEntity<Integer> updateReview(@Valid @RequestBody ReviewUpdateRequestDto request) {
-        return ResponseEntity.ok(reviewService.modifyReview(request));
+    public ResponseEntity<Integer> updateReview(
+            @Valid @RequestBody ReviewUpdateRequestDto request,
+            Authentication authentication) {
+        return ResponseEntity.ok(reviewService.modifyReview(request, authentication.getName()));
     }
 
-    // 리뷰 삭제
+    // 리뷰 삭제 (작성자 본인만 가능 - 본인 확인은 인증 주체 기준)
     @DeleteMapping("/delete")
     public ResponseEntity<Integer> deleteReview(
             @RequestParam("reviewId") Integer reviewId,
-            @RequestParam("userId") String userId) {
-        return ResponseEntity.ok(reviewService.removeReview(reviewId, userId));
+            Authentication authentication) {
+        return ResponseEntity.ok(reviewService.removeReview(reviewId, authentication.getName()));
     }
 }
