@@ -28,4 +28,13 @@ public final class SecurityPaths {
         "/api/admin/login",
         "/api/oauth2/**"
     );
+
+    // GET 요청에 한해서만 인증 없이 허용하는 경로 (노출 진료항목/카테고리 조회 등 예약 전 탐색용).
+    // SecurityConfig에서만 사용하며, JwtAuthenticationFilter는 이 목록에 대해 별도 처리가 필요 없다
+    // (permitAll이라도 필터 자체는 그대로 통과시키고, 토큰이 없으면 인증 정보만 설정하지 않을 뿐이다).
+    public static final List<String> PUBLIC_GET_PATTERNS = List.of(
+        "/treatments/**",
+        "/treatment-categories/**",
+        "/reviews/**"
+    );
 }

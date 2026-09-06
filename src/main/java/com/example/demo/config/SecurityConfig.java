@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -50,7 +51,13 @@ public class SecurityConfig {
                 SecurityPaths.PUBLIC_PATTERNS.forEach(pattern ->
                     auth.requestMatchers(pattern).permitAll()
                 );
+                SecurityPaths.PUBLIC_GET_PATTERNS.forEach(pattern ->
+                    auth.requestMatchers(HttpMethod.GET, pattern).permitAll()
+                );
                 auth
+                    // "/admin/**"와 "/api/admin/**" 양쪽 모두 관리자 전용으로 보호한다
+                    // (기존 5도메인은 "/admin/...", User 도메인만 "/api/admin/..." 경로를 씀 - docs/api-contract.md 참고)
+                    .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPERADMIN")
                     .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "SUPERADMIN")
                     .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN", "SUPERADMIN")
                     .anyRequest().authenticated();
