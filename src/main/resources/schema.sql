@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS inquiry_answer (
 );
 
 -- =====================================================================
--- Phase 2 도메인(Consultation, Treatment/TreatmentCategory, StaffSchedule, Review)
+-- Phase 2 도메인(Consultation, Treatment/TreatmentCategory, Review)
 -- =====================================================================
 -- 2026-09-06 | 리팩토링 | Phase 2 스키마 추가 (기존 테이블 정의는 변경하지 않음, 추가만 함)
 -- =====================================================================
@@ -130,17 +130,6 @@ CREATE TABLE IF NOT EXISTS consultation (
     preferred_time      TIME,
     created_at          TIMESTAMP       NOT NULL DEFAULT NOW(),
     updated_at          TIMESTAMP       NOT NULL DEFAULT NOW()
-);
-
--- 직원 근무 일정 (StaffSchedule.java 기준)
-CREATE TABLE IF NOT EXISTS staff_schedule (
-    schedule_id     SERIAL          PRIMARY KEY,
-    admin_id        INTEGER         NOT NULL,
-    schedule_date   DATE            NOT NULL,
-    schedule_type   VARCHAR(20)     NOT NULL,
-    memo            TEXT,
-    created_at      TIMESTAMP       NOT NULL DEFAULT NOW(),
-    updated_at      TIMESTAMP       NOT NULL DEFAULT NOW()
 );
 
 -- 리뷰(후기) (Review.java 기준, treatment_id -> treatment.treatment_id, user_id -> users.u_id 참조)

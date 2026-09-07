@@ -427,3 +427,145 @@ Frontend 세션이 요청한 세 가지 중 우선순위가 가장 낮은 항목
 ### 9-4. `GET /reviews/**` 인증 요구 — 프론트 정보가 이미 stale함을 확인
 
 Frontend 세션은 "설계 의도는 permitAll이지만 SecurityConfig가 아직 갱신 전이라 실제로는 인증 필요"라고 알고 있었으나, 이 문제는 커밋 `bf4a1ca`(§"알려진 이슈 정리" 단계)에서 이미 해결되어 현재 `SecurityPaths.PUBLIC_GET_PATTERNS`에 `"/reviews/**"`가 포함되어 있다. 로컬 서버로 `GET /reviews/all`을 `Authorization` 헤더 없이 직접 호출해 `200`과 정상 응답을 재확인했다. 프론트가 참고하던 정보(아마도 `docs/test-report.md`에 남긴 이전 시점 메모)가 최신 상태를 반영하지 못한 것으로 보이며, 별도의 백엔드 수정은 필요 없었다.
+
+## 10. 폐기 예정 GitHub Actions 워크플로우 원문 보존 (Deploy 세션, Phase 11 사전 작업)
+
+Neon/Render/Vercel 전환 후 EC2/nginx로 SSH·SCP 배포하던 기존 GitHub Actions 워크플로우는 무의미해지므로 Phase 11에서 삭제 예정이다. 삭제 전에 원문을 여기 보존한다(마이그레이션 계획 `docs/deployment-migration.md` §6 컷오버 순서 4번 참고).
+
+**주의**: `project/yedocb`(이 저장소)는 `archive/pre-refactor-scaffold` 백업 후 `git init`으로 새 이력을 시작했기 때문에 `.github/workflows/backend-deploy.yml`이 애초에 이 저장소에 존재하지 않는다 — 팀 원본 참고 저장소 `C:\kyum\_analysis\yedocb\.github\workflows\backend-deploy.yml`에만 남아있던 것을 참고용으로 아래에 보존한다. `project/yedocf`의 `.github/workflows/frontend-deploy.yml`은 실제로 존재하며 Phase 11에서 삭제 대상이다.
+
+### 10-1. `backend-deploy.yml` (참고 저장소 `_analysis/yedocb`에만 존재, 이 저장소에는 없었음)
+
+```yaml
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Append OAuth keys to application.properties
+        run: |
+          echo "" >> src/main/resources/application.properties
+          echo "# === OAuth Secrets from GitHub Actions ===" >> src/main/resources/application.properties
+          echo "google.client.id=${{ secrets.VITE_GOOGLE_CLIENT_ID }}" >> src/main/resources/application.properties
+          echo "google.client.secret=${{ secrets.VITE_GOOGLE_CLIENT_SECRET }}" >> src/main/resources/application.properties
+          echo "google.redirect.uri=${{ secrets.VITE_GOOGLE_REDIRECT_URI }}" >> src/main/resources/application.properties
+          echo "google.logout.redirect.uri=${{ secrets.VITE_GOOGLE_LOGOUT_REDIRECT_URI }}" >> src/main/resources/application.properties
+          echo "kakao.client.id=${{ secrets.KAKAO_CLIENT_ID }}" >> src/main/resources/application.properties
+          echo "kakao.redirect.uri=${{ secrets.KAKAO_REDIRECT_URI }}" >> src/main/resources/application.properties
+          echo "kakao.logout.redirect.uri=${{ secrets.VITE_KAKAO_LOGOUT_REDIRECT_URI }}" >> src/main/resources/application.properties
+
+      - name: Build with Gradle
+        run: ./gradlew clean build -x test
+
+      - name: Deploy to EC2
+        env:
+          PRIVATE_KEY: ${{ secrets.YEDOC }}
+          HOST: ${{ secrets.BACKEND_HOST }}
+        run: |
+          echo "$PRIVATE_KEY" > key.pem
+          chmod 600 key.pem
+
+          JAR_FILE=$(ls build/libs/*SNAPSHOT.jar | grep -v plain | head -n 1)
+          ssh -i key.pem -o StrictHostKeyChecking=no ec2-user@$HOST "rm -f /home/ec2-user/app.jar"
+          scp -i key.pem -o StrictHostKeyChecking=no "$JAR_FILE" ec2-user@$HOST:/home/ec2-user/app.jar
+
+          ssh -i key.pem -o StrictHostKeyChecking=no ec2-user@$HOST << 'EOF'
+            pkill -f 'java -jar' || true
+            echo "Running JAR..."
+            nohup /opt/corretto/amazon-corretto-21.0.7.6.1-linux-x64/bin/java -jar /home/ec2-user/app.jar > log.txt 2>&1 &
+            sleep 3
+            tail -n 20 /home/ec2-user/log.txt
+          EOF
+```
+
+**참고(트레이드오프 기록용)**: 이 워크플로우는 OAuth `client_secret`을 빌드 시점에 평문으로 `application.properties`에 append해 커밋되지 않은 빌드 아티팩트(JAR) 안에 굽는 방식이었다 — 저장소에 값이 남지는 않지만 JAR 안에 평문 임베드되는 구조. Render 전환 후에는 환경변수로 런타임에 주입하므로 빌드 아티팩트에 시크릿이 전혀 포함되지 않는다.
+
+### 10-2. `frontend-deploy.yml` (`project/yedocf`에 실존, Phase 11 삭제 대상)
+
+```yaml
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create .env file
+        run: |
+          echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" >> .env
+
+          echo "VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}" >> .env
+          echo "VITE_GOOGLE_CLIENT_SECRET=${{ secrets.VITE_GOOGLE_CLIENT_SECRET }}" >> .env
+          echo "VITE_GOOGLE_REDIRECT_URI=${{ secrets.VITE_GOOGLE_REDIRECT_URI }}" >> .env
+
+          echo "VITE_KAKAO_API_KEY=${{ secrets.VITE_KAKAO_API_KEY }}" >> .env
+          echo "VITE_KAKAO_CLIENT_ID=${{ secrets.VITE_KAKAO_CLIENT_ID }}" >> .env
+          echo "VITE_KAKAO_REDIRECT_URI=${{ secrets.VITE_KAKAO_REDIRECT_URI }}" >> .env
+          echo "VITE_KAKAO_LOGOUT_REDIRECT_URI=${{ secrets.VITE_KAKAO_LOGOUT_REDIRECT_URI }}" >> .env
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy via SCP
+        env:
+          PRIVATE_KEY: ${{ secrets.YEDOC }}
+          HOST: ${{ secrets.FRONTEND_HOST }}
+        run: |
+          echo "$PRIVATE_KEY" > key.pem
+          chmod 600 key.pem
+
+          scp -i key.pem -o StrictHostKeyChecking=no -r dist/* ec2-user@$HOST:/home/ec2-user/frontend-dist
+
+          # SSH 접속 후 sudo 권한으로 nginx 경로에 복사
+          ssh -i key.pem -o StrictHostKeyChecking=no ec2-user@$HOST << 'EOF'
+            sudo rm -rf /usr/share/nginx/html/*
+            sudo cp -r /home/ec2-user/frontend-dist/* /usr/share/nginx/html/
+          EOF
+```
+
+**발견된 문제(트레이드오프 기록용)**: `VITE_` 접두사가 붙은 환경변수는 Vite가 클라이언트 번들에 그대로 노출한다. 이 워크플로우는 `VITE_GOOGLE_CLIENT_SECRET`을 `.env`에 넣고 있는데, OAuth client secret은 절대 프론트(공개 SPA 번들)에 포함되면 안 되는 값이다 — 실제로 값이 세팅되어 있었다면 배포된 번들에서 누구나 추출 가능했을 잠재적 보안 취약점이다(현재 코드베이스에서 프론트가 이 값을 실제로 사용하는 곳은 없는 것으로 확인됨 — 죽은 설정이었을 가능성이 높지만 위험한 패턴 자체를 기록해둔다). Render/Vercel 전환 후 환경변수 목록(`docs/deployment-migration.md` §2)에는 이 변수를 아예 포함하지 않았다.
+
+## 11. StaffSchedule(직원 근무일정) 도메인 전체 삭제 (Phase 11, Deploy 세션)
+
+Phase 2에서 구현했던 StaffSchedule 도메인을 사용자 요청으로 완전히 삭제했다 — 애초 계획 단계부터 정리를 원했던 기능이라고 확인됨.
+
+**삭제 범위**:
+- 백엔드: `entity/StaffSchedule.java`, `dao/AdminStaffScheduleDao.java`, `dto/request/schedule/*`(2개 클래스 + 패키지), `dto/response/schedule/*`(1개 클래스 + 패키지), `service/AdminStaffScheduleService.java`, `controller/AdminStaffScheduleController.java`, `mapper/AdminStaffScheduleMapper.xml`, 테스트 3종(`AdminStaffScheduleControllerTest`, `AdminStaffScheduleMapperTest`, `AdminStaffScheduleServiceTest`) — 총 11개 파일
+- `schema.sql`에서 `staff_schedule` 테이블 정의 제거 (Neon에 이미 생성된 테이블은 별도로 `DROP TABLE`, `docs/deployment-migration.md` §8 참고)
+- 프론트: `StaffScheduleManagePage.jsx` 삭제, `App.jsx` 라우트/import 제거, `Sidebar.jsx` 메뉴 항목 및 미사용 아이콘 import 제거, `vite.config.js` 주석 정리
+- 문서: `docs/yedoc-migration-plan.md`, `docs/api-contract.md`(§10 섹션 전체 제거), `docs/architecture-after.md`에서 도메인 표/목록 정리
+
+백엔드 전체 테스트 193→182개로 감소, 전부 통과 확인. 프론트 `npm run build` 성공 확인.
+
+## 12. 아이디/비밀번호 찾기 + 이메일 기능을 배포 범위에서 제외
+
+사용자 확인: SMTP 연동이 필요한 별도 작업이라 이번 포트폴리오 배포에는 포함하지 않고, README에 "포트폴리오 완성 후 추가 예정"으로 명시하기로 결정. §8(아이디/비밀번호 찾기, 우선순위 3, 미착수)에서 이미 기록된 대로 화면은 남기되 기능은 비활성화 안내로 유지한다.

@@ -247,7 +247,7 @@
 
 # API Contract — Phase 2 추가분
 
-대상 도메인: Consultation(+Admin), Treatment(+Admin), TreatmentCategory(+Admin), StaffSchedule(Admin 전용), Statistics(Admin 전용), Dashboard(Admin 전용), Review(+Admin, 신규)
+대상 도메인: Consultation(+Admin), Treatment(+Admin), TreatmentCategory(+Admin), Statistics(Admin 전용), Dashboard(Admin 전용), Review(+Admin, 신규)
 
 공통 사항은 위 Phase 1 섹션과 동일하다(`ResponseEntity<ExactDtoType>` 그대로 반환, 공용 래퍼 없음, `ErrorResponse` 형식 동일).
 
@@ -338,25 +338,9 @@
 
 ---
 
-## 10. StaffSchedule (`/admin/staff-schedules`, 관리자 전용)
-
-| Method | Path | Request | Response |
-|---|---|---|---|
-| POST | `/admin/staff-schedules/register` | `AdminStaffScheduleCreateRequestDto` (`adminId`(필수)`, scheduleDate`(필수)`, scheduleType`(필수, `WORK`/`OFF`)`, memo`) | `Integer` |
-| GET | `/admin/staff-schedules/all` | - | `AdminStaffScheduleResponseDto[]` |
-| GET | `/admin/staff-schedules/admin?adminId=` | `adminId: number` | `AdminStaffScheduleResponseDto[]` |
-| GET | `/admin/staff-schedules/date?scheduleDate=` | `scheduleDate: string(LocalDate, ISO)` | `AdminStaffScheduleResponseDto[]` |
-| GET | `/admin/staff-schedules/type?scheduleType=` | `scheduleType: string` | `AdminStaffScheduleResponseDto[]` |
-| GET | `/admin/staff-schedules/{scheduleId}` | - | `AdminStaffScheduleResponseDto` |
-| PUT | `/admin/staff-schedules/update` | `AdminStaffScheduleUpdateRequestDto` (`scheduleId, adminId, scheduleDate, scheduleType`(모두 필수)`, memo`) | `Integer` |
-| DELETE | `/admin/staff-schedules/delete/{scheduleId}` | - | `Integer` |
-
-`AdminStaffScheduleResponseDto` 필드: `scheduleId, adminId, scheduleDate, scheduleType, memo, createdAt, updatedAt`
-
-예외:
-- 존재하지 않는 일정 조회/수정/삭제 시 404 (`ResourceNotFoundException`, Phase 2에서 교체됨).
-- **동일 관리자 + 동일 날짜에 이미 일정이 존재하면 409 (`DuplicateResourceException`)** — Phase 2에서 새로 추가된 검증(기존에는 검증 자체가 없어 중복 등록이 가능했던 버그).
-- 필수값 누락/잘못된 일정 유형은 400 (`IllegalArgumentException` -> GlobalExceptionHandler 매핑. `@Valid`로 잡히는 필드 누락은 필드별 에러 메시지 포함, 유형 화이트리스트 검증은 서비스 레벨에서 단일 메시지로 400 응답).
+> `StaffSchedule`(직원 근무일정) 도메인은 Phase 2에서 구현되었으나, 배포 후 실사용 테스트(Phase 11) 단계에서
+> 스코프 밖으로 확정되어 백엔드/프론트/DB 전체에서 삭제되었다 — 아래 §11부터 번호는 유지하고 이 섹션만 제거함
+> (`docs/deployment-migration.md`, `docs/refactor-log.md` 참고).
 
 ---
 
@@ -438,7 +422,7 @@ Reservation/Inquiry 참조 쿼리는 Phase 1의 `u_id` 컬럼명 변경에 맞�
 
 ## 알려진 이슈 / 프론트엔드 유의사항 (Phase 2 추가)
 
-7. `Consultation`/`Treatment`/`TreatmentCategory`/`StaffSchedule`/`Statistics`/`Dashboard`는 Phase 1 문서화 당시 누락되어 있었고, 이번 Phase 2에서 처음 문서화되었다(§8~§12).
-8. `StaffSchedule` 등록/수정은 Phase 2부터 동일 관리자+날짜 중복 등록을 409로 차단한다 — 이전에는 중복 등록이 가능했던 버그였으니 프론트에서 "이미 등록된 일정" 케이스(409) 처리를 새로 추가해야 한다.
+7. `Consultation`/`Treatment`/`TreatmentCategory`/`Statistics`/`Dashboard`는 Phase 1 문서화 당시 누락되어 있었고, 이번 Phase 2에서 처음 문서화되었다(§8~§12).
+8. (삭제됨) `StaffSchedule` 도메인 — Phase 11에서 스코프 밖으로 확정되어 백엔드/프론트/DB 전체에서 삭제됨.
 9. ~~`Review`의 작성자 본인 확인이 요청 바디의 `userId` 값 비교로 이루어짐(JWT 인증 미완료 상태의 임시 구현, 다른 사용자 명의 도용 가능)~~ → 해결됨. 이제 작성/수정/삭제 모두 JWT 인증 주체(`Authentication.getName()`)로 작성자를 식별하며, 요청 바디의 `userId`는 더 이상 받지 않는다(§13 참고).
 10. `Consultation`/`Treatment`/`TreatmentCategory`의 필수값 누락은 `@Valid`(400, 필드별 에러 메시지 포함)로 검증되고, 서비스 레벨의 상태값 화이트리스트 검증(예: `consultationStatus`가 RECEIVED/SCHEDULED/... 중 하나인지)은 `GlobalExceptionHandler`의 `IllegalArgumentException` -> 400 매핑으로 처리된다(단일 메시지, 필드별 에러 목록은 없음). 해결됨 — 이전 버전 문서의 "500(알려진 이슈)" 표기는 폐기.

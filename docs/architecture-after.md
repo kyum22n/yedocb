@@ -52,7 +52,6 @@ Mapper XML (resources/mapper/*.xml)   — 실제 SQL (PostgreSQL)
 | **Consultation (상담)** | `entity/Consultation.java` | `ConsultationDao`, `AdminConsultationDao` / `ConsultationMapper.xml`, `AdminConsultationMapper.xml` | `ConsultationService`, `AdminConsultationService` | `ConsultationController` (`/consultations`), `AdminConsultationController` (`/admin/consultations`) | `dto/request/consultation` | `dto/response/consultation` |
 | **Treatment (진료항목)** | `entity/Treatment.java` | `TreatmentDao`, `AdminTreatmentDao` / `TreatmentMapper.xml`, `AdminTreatmentMapper.xml` | `TreatmentService`, `AdminTreatmentService` | `TreatmentController` (`/treatments`, GET만·인증불필요), `AdminTreatmentController` (`/admin/treatments`) | `dto/request/treatment` | `dto/response/treatment` |
 | **TreatmentCategory (진료항목 카테고리)** | `entity/TreatmentCategory.java` | `TreatmentCategoryDao`, `AdminTreatmentCategoryDao` / `TreatmentCategoryMapper.xml`, `AdminTreatmentCategoryMapper.xml` | `TreatmentCategoryService`, `AdminTreatmentCategoryService` | `TreatmentCategoryController` (`/treatment-categories`, GET만·인증불필요), `AdminTreatmentCategoryController` (`/admin/treatment-categories`) | `dto/request/treatment` | `dto/response/treatment` |
-| **StaffSchedule (직원 근무 일정)** | `entity/StaffSchedule.java` | `AdminStaffScheduleDao` / `AdminStaffScheduleMapper.xml` | `AdminStaffScheduleService` | `AdminStaffScheduleController` (`/admin/staff-schedules`, 관리자 전용) | `dto/request/schedule` | `dto/response/schedule` |
 | **Statistics (통계/리포트)** | 없음 (순수 집계) | `AdminStatisticsDao` / `AdminStatisticsMapper.xml` | `AdminStatisticsService` | `AdminStatisticsController` (`/admin/statistics`, 관리자 전용) | `dto/request/statistics` | `dto/response/statistics` |
 | **Dashboard (관리자 대시보드)** | 없음 (순수 집계) | `AdminDashboardDao` / `AdminDashboardMapper.xml` | `AdminDashboardService` | `AdminDashboardController` (`/admin/dashboard`, 관리자 전용) | - | `dto/response/dashboard` |
 | **Review (리뷰/후기) — Phase 2 신규** | `entity/Review.java` | `ReviewDao` / `ReviewMapper.xml` (사용자/관리자 공용, 관리자 전용 쿼리 별도 메소드로 분리) | `ReviewService` (사용자용), `AdminReviewService` (관리자 모더레이션) | `ReviewController` (`/reviews`), `AdminReviewController` (`/admin/reviews`) | `dto/request/review` | `dto/response/review` |
@@ -63,22 +62,22 @@ Mapper XML (resources/mapper/*.xml)   — 실제 SQL (PostgreSQL)
 ## 3. 패키지 전체 목록
 
 ### `com.example.demo.entity` — 도메인 엔티티 (Lombok `@Data`, MyBatis resultType으로 사용)
-`User`, `Admin`, `Reservation`, `Notice`, `Inquiry`, `InquiryAnswer`, `Consultation`, `Treatment`, `TreatmentCategory`, `StaffSchedule`, `Review`
+`User`, `Admin`, `Reservation`, `Notice`, `Inquiry`, `InquiryAnswer`, `Consultation`, `Treatment`, `TreatmentCategory`, `Review`
 
 ### `com.example.demo.dao` — MyBatis `@Mapper` 인터페이스 (구현 없음, XML과 1:1 대응)
-`UserDao`, `AdminDao`, `ReservationDao`, `AdminReservationDao`, `NoticeDao`, `AdminNoticeDao`, `InquiryDao`, `AdminInquiryDao`, `ConsultationDao`, `AdminConsultationDao`, `TreatmentDao`, `AdminTreatmentDao`, `TreatmentCategoryDao`, `AdminTreatmentCategoryDao`, `AdminStaffScheduleDao`, `AdminStatisticsDao`, `AdminDashboardDao`, `ReviewDao`
+`UserDao`, `AdminDao`, `ReservationDao`, `AdminReservationDao`, `NoticeDao`, `AdminNoticeDao`, `InquiryDao`, `AdminInquiryDao`, `ConsultationDao`, `AdminConsultationDao`, `TreatmentDao`, `AdminTreatmentDao`, `TreatmentCategoryDao`, `AdminTreatmentCategoryDao`, `AdminStatisticsDao`, `AdminDashboardDao`, `ReviewDao`
 
 ### `com.example.demo.service` — 비즈니스 로직
-`UserService`, `AdminUserService`, `AdminService`, `ReservationService`, `AdminReservationService`, `NoticeService`, `AdminNoticeService`, `InquiryService`, `AdminInquiryService`, `ConsultationService`, `AdminConsultationService`, `TreatmentService`, `AdminTreatmentService`, `TreatmentCategoryService`, `AdminTreatmentCategoryService`, `AdminStaffScheduleService`, `AdminStatisticsService`, `AdminDashboardService`, `ReviewService`, `AdminReviewService`
+`UserService`, `AdminUserService`, `AdminService`, `ReservationService`, `AdminReservationService`, `NoticeService`, `AdminNoticeService`, `InquiryService`, `AdminInquiryService`, `ConsultationService`, `AdminConsultationService`, `TreatmentService`, `AdminTreatmentService`, `TreatmentCategoryService`, `AdminTreatmentCategoryService`, `AdminStatisticsService`, `AdminDashboardService`, `ReviewService`, `AdminReviewService`
 
 ### `com.example.demo.controller` — REST 엔드포인트
-`UserController`, `AdminUserController`, `AdminController`, `ReservationController`, `AdminReservationController`, `NoticeController`, `AdminNoticeController`, `InquiryController`, `AdminInquiryController`, `ConsultationController`, `AdminConsultationController`, `TreatmentController`, `AdminTreatmentController`, `TreatmentCategoryController`, `AdminTreatmentCategoryController`, `AdminStaffScheduleController`, `AdminStatisticsController`, `AdminDashboardController`, `ReviewController`, `AdminReviewController`, `UserLoginController`, `AdminLoginController`, `OAuthController`
+`UserController`, `AdminUserController`, `AdminController`, `ReservationController`, `AdminReservationController`, `NoticeController`, `AdminNoticeController`, `InquiryController`, `AdminInquiryController`, `ConsultationController`, `AdminConsultationController`, `TreatmentController`, `AdminTreatmentController`, `TreatmentCategoryController`, `AdminTreatmentCategoryController`, `AdminStatisticsController`, `AdminDashboardController`, `ReviewController`, `AdminReviewController`, `UserLoginController`, `AdminLoginController`, `OAuthController`
 
 ### `com.example.demo.dto.request.*` — 요청 DTO (도메인별 하위 패키지)
-`user`, `admin`, `reservation`, `notice`, `inquiry`, `consultation`, `treatment`, `schedule`, `statistics`, `review`(신규), `auth`
+`user`, `admin`, `reservation`, `notice`, `inquiry`, `consultation`, `treatment`, `statistics`, `review`(신규), `auth`
 
 ### `com.example.demo.dto.response.*` — 응답 DTO (도메인별 하위 패키지, 모두 `static from(entity)` 팩토리 보유 — Statistics/Dashboard는 엔티티가 없어 예외)
-`user`, `admin`, `reservation`, `notice`, `inquiry`, `consultation`, `treatment`, `schedule`, `statistics`, `dashboard`, `review`(신규), `auth`
+`user`, `admin`, `reservation`, `notice`, `inquiry`, `consultation`, `treatment`, `statistics`, `dashboard`, `review`(신규), `auth`
 
 ### `com.example.demo.config` — 스프링 설정
 `PasswordEncoderConfig`(BCrypt 빈), `SecurityConfig`(JWT Stateless 인가 규칙), `CorsProperties`(CORS 오리진 외부화)
@@ -93,12 +92,12 @@ Mapper XML (resources/mapper/*.xml)   — 실제 SQL (PostgreSQL)
 
 ## 4. 리소스 파일
 
-- `src/main/resources/schema.sql` — 전체 테이블 정의(Phase 1: `users`, `admin`, `reservation`, `notice`, `inquiry`, `inquiry_answer` / Phase 2 추가: `treatment_category`, `treatment`, `consultation`, `staff_schedule`, `review`)
+- `src/main/resources/schema.sql` — 전체 테이블 정의(Phase 1: `users`, `admin`, `reservation`, `notice`, `inquiry`, `inquiry_answer` / Phase 2 추가: `treatment_category`, `treatment`, `consultation`, `review`)
 - `src/main/resources/mapper/*.xml` — 도메인별 MyBatis SQL 매퍼 (DAO 인터페이스와 1:1 대응, 파일명 규칙은 `{DaoName}.xml`)
 - `src/main/resources/application.properties` — DB 연결, JWT 시크릿/만료시간, OAuth 클라이언트 설정, `spring.sql.init.mode=always`
 
 ## 5. 테스트
 
-`src/test/java/com/example/demo/service/` — 서비스 레이어 단위 테스트(Mockito, 실제 DB 미사용): `UserServiceTest`, `AdminUserServiceTest`, `ReviewServiceTest`, `AdminStaffScheduleServiceTest`, `AdminStatisticsServiceTest`
+`src/test/java/com/example/demo/service/` — 서비스 레이어 단위 테스트(Mockito, 실제 DB 미사용): `UserServiceTest`, `AdminUserServiceTest`, `ReviewServiceTest`, `AdminStatisticsServiceTest`
 `src/test/java/com/example/demo/exception/` — `GlobalExceptionHandlerTest`
 `src/test/java/com/example/demo/DemoApplicationTests` — 스프링 컨텍스트 로드 테스트(로컬에 PostgreSQL이 없으면 실패 — 이 저장소를 로컬에서 검증할 때 항상 나타나는 사전 존재 이슈이며 코드 결함이 아니다)
