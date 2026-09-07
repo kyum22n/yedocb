@@ -3,6 +3,8 @@ package com.example.demo.controller;
 import java.util.Collections;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -39,6 +41,8 @@ import com.example.demo.security.JwtTokenProvider;
 @RestController
 @RequestMapping("/api/oauth2")
 public class OAuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(OAuthController.class);
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
@@ -103,6 +107,7 @@ public class OAuthController {
             return handleOAuthLogin(email);
 
         } catch (Exception e) {
+            log.error("Google OAuth 로그인 처리 실패", e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
@@ -149,6 +154,7 @@ public class OAuthController {
             return handleOAuthLogin(email);
 
         } catch (Exception e) {
+            log.error("Kakao OAuth 로그인 처리 실패", e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
