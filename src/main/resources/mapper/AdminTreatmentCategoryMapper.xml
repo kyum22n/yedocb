@@ -9,9 +9,9 @@
         useGeneratedKeys="true"
         keyProperty="categoryId"
     > 
-        INSERT INTO treatment_category 
-            (category_name, COALESCE(#{is_visible}, TRUE), created_at, updated_at) 
-        VALUES (#{categoryName}, #{isVisible}, NOW(), NOW()) 
+        INSERT INTO treatment_category
+            (category_name, is_visible, created_at, updated_at)
+        VALUES (#{categoryName}, COALESCE(#{isVisible}, TRUE), NOW(), NOW())
     </insert>
 
     <!--카테고리 목록 조회-->

@@ -23,6 +23,8 @@ import com.example.demo.entity.TreatmentCategory;
  * 2026-09-07 | 테스트 | Phase 6 연동테스트 작성 — 아래 등록 테스트에서 AdminTreatmentCategoryMapper.xml의
  *                        insertCategory SQL 문법 오류를 발견함(docs/test-report.md 참고, 운영 코드
  *                        수정은 사용자 확인 후 별도 진행)
+ * 2026-09-07 | 배포 후 디버깅 | Phase 11 실사용 테스트에서 카테고리 등록 불가로 확인되어 SQL 수정
+ *                        (docs/deployment-migration.md 참고), 아래 테스트를 성공 검증으로 변경
  */
 class TreatmentCategoryMapperTest extends AbstractIntegrationTest {
 
@@ -50,21 +52,34 @@ class TreatmentCategoryMapperTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void 카테고리등록_insertCategory는_SQL문법오류로_실패한다() {
-        // 발견된 이슈(docs/test-report.md): AdminTreatmentCategoryMapper.xml의 insertCategory가
-        //   INSERT INTO treatment_category
-        //       (category_name, COALESCE(#{is_visible}, TRUE), created_at, updated_at)
-        //   VALUES (#{categoryName}, #{isVisible}, NOW(), NOW())
-        // 컬럼 목록에 COALESCE(...) 표현식이 그대로 들어가 있고 파라미터명도 스네이크케이스
-        // (#{is_visible})로 잘못 적혀 있어 실제 DB에 대해 실행하면 SQL 문법 오류가 난다.
-        // AdminTreatmentCategoryController.registerCategory가 이 경로를 그대로 타므로,
-        // 관리자 카테고리 등록 기능은 현재 실제로는 동작하지 않는다.
+    void 카테고리등록_insertCategory가_정상적으로_생성된다() {
+        // 배포 후 디버깅: 컬럼 목록에 COALESCE(...) 표현식이 그대로 들어가 있고 파라미터명도
+        // 스네이크케이스(#{is_visible})로 잘못 적혀 있던 SQL을 수정함(AdminTreatmentCategoryMapper.xml).
         TreatmentCategory category = new TreatmentCategory();
         category.setCategoryName("성형");
         category.setIsVisible(true);
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> adminCategoryDao.insertCategory(category))
-                .isInstanceOf(org.springframework.dao.DataAccessException.class);
+        adminCategoryDao.insertCategory(category);
+
+        assertThat(category.getCategoryId()).isNotNull();
+        TreatmentCategory saved = categoryDao.selectVisibleCategories().stream()
+                .filter(c -> c.getCategoryId().equals(category.getCategoryId()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(saved.getCategoryName()).isEqualTo("성형");
+        assertThat(saved.getIsVisible()).isTrue();
+    }
+
+    @Test
+    void 카테고리등록_isVisible이_null이면_기본값_true로_저장된다() {
+        TreatmentCategory category = new TreatmentCategory();
+        category.setCategoryName("피부");
+        category.setIsVisible(null);
+
+        adminCategoryDao.insertCategory(category);
+
+        TreatmentCategory saved = adminCategoryDao.selectCategoryById(category.getCategoryId());
+        assertThat(saved.getIsVisible()).isTrue();
     }
 
     private void insertCategoryDirectly(String name, boolean visible) {
