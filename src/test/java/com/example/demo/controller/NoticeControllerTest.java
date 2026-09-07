@@ -19,16 +19,16 @@ import com.example.demo.service.NoticeService;
 
 /**
  * 파일명: NoticeControllerTest.java
- * 설명: 사용자용 공지/이벤트(NoticeController) MockMvc 테스트. "/notices"는 SecurityPaths의
- *       permitAll 화이트리스트에 없으므로 anyRequest().authenticated() 규칙이 적용되어
- *       인증 없이는 조회할 수 없음을 확인한다(공개 게시판이 아니라 로그인 사용자 전용임을
- *       이번 테스트 작성 과정에서 재확인 — 프론트가 비로그인 사용자에게도 공지를 보여준다면
- *       배포 전 SecurityPaths.PUBLIC_GET_PATTERNS에 "/notices/**" 추가 여부를 사용자와 확인해야 한다).
+ * 설명: 사용자용 공지/이벤트(NoticeController) MockMvc 테스트.
  *
  * ===============================
  * 수정 이력
  * ===============================
- * 2026-09-07 | 테스트 | Phase 6 연동테스트 작성
+ * 2026-09-07 | 테스트 | Phase 6 연동테스트 작성 — 당시 "/notices"가 permitAll 화이트리스트에
+ *                        없어 비로그인 조회가 401이었음(발견된 이슈로 기록, docs/test-report.md)
+ * 2026-09-07 | 배포 후 디버깅 | Phase 11 실사용 테스트에서 메인 페이지 공지 팝업이 비로그인
+ *                        사용자에게 401로 안 보이는 게 확인되어 SecurityPaths.PUBLIC_GET_PATTERNS에
+ *                        "/notices/**" 추가. 아래 테스트를 401 → 200 기대로 변경
  */
 class NoticeControllerTest extends AbstractIntegrationTest {
 
@@ -46,9 +46,15 @@ class NoticeControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void 인증없이_공지목록조회하면_401() throws Exception {
+    void 인증없이_공지목록조회해도_200() throws Exception {
+        NoticeResponseDto dto = new NoticeResponseDto();
+        dto.setNoticeId(1);
+        dto.setTitle("공지 제목");
+        when(noticeService.getVisibleNotices()).thenReturn(List.of(dto));
+
         mockMvc.perform(get("/notices/all"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].title").value("공지 제목"));
     }
 
     @Test

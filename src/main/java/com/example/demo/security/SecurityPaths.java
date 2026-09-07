@@ -36,6 +36,7 @@ public final class SecurityPaths {
         "/treatments/**",
         "/treatment-categories/**",
         "/reviews/**",
-        "/reservations/disabled-times"
+        "/reservations/disabled-times",
+        "/notices/**"
     );
 }

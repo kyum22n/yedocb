@@ -76,7 +76,9 @@ class SecurityConfigIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void anyRequest_authenticated_경로는_토큰없이_401이다() throws Exception {
-        mockMvc.perform(get("/notices/all")).andExpect(status().isUnauthorized());
+        // "/notices/**"는 배포 후 디버깅으로 PUBLIC_GET_PATTERNS에 추가되어 더 이상 이 케이스가
+        // 아니므로(docs/deployment-migration.md 참고), permitAll이 아닌 다른 경로로 검증한다.
+        mockMvc.perform(get("/inquiries/all")).andExpect(status().isUnauthorized());
     }
 
     @Test
