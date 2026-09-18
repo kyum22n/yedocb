@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -20,6 +21,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.example.demo.AbstractIntegrationTest;
 import com.example.demo.dto.request.user.UserCreateRequestDto;
+import com.example.demo.dto.request.user.UserFindIdRequestDto;
+import com.example.demo.dto.request.user.UserFindPasswordRequestDto;
 import com.example.demo.dto.request.user.UserPasswordUpdateRequestDto;
 import com.example.demo.dto.response.user.UserMypageResponseDto;
 import com.example.demo.entity.User;
@@ -115,5 +118,52 @@ class UserControllerTest extends AbstractIntegrationTest {
         mockMvc.perform(delete("/api/user/withdraw").header("Authorization", userToken("user01")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").value(1));
+    }
+
+    @Test
+    void 아이디찾기는_인증없이도_200이다() throws Exception {
+        UserFindIdRequestDto request = new UserFindIdRequestDto();
+        request.setUEmail("test@example.com");
+
+        mockMvc.perform(post("/api/user/find-id")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        verify(userService).findIdAndSendEmail("test@example.com");
+    }
+
+    @Test
+    void 아이디찾기_이메일형식오류시_400() throws Exception {
+        UserFindIdRequestDto request = new UserFindIdRequestDto();
+        request.setUEmail("invalid-email");
+
+        mockMvc.perform(post("/api/user/find-id")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void 비밀번호찾기는_인증없이도_200이다() throws Exception {
+        UserFindPasswordRequestDto request = new UserFindPasswordRequestDto();
+        request.setUId("testuser");
+
+        mockMvc.perform(post("/api/user/find-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        verify(userService).resetPasswordAndSendEmail("testuser");
+    }
+
+    @Test
+    void 비밀번호찾기_아이디누락시_400() throws Exception {
+        UserFindPasswordRequestDto request = new UserFindPasswordRequestDto();
+
+        mockMvc.perform(post("/api/user/find-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 }

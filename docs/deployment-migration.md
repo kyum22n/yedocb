@@ -43,7 +43,7 @@ Deploy 착수 조건("Backend/Frontend가 각자 로컬에서 배포 가능 상�
 
 **미해결 이슈 (배포에 지장 없음, 기록만 하고 배포 후 디버깅 대상)**:
 - ~~`AdminTreatmentCategoryMapper.xml`의 `insertCategory` SQL 문법 오류~~ → **Phase 11에서 수정 완료**(커밋 `61118f7`, 아래 진행 기록 참고)
-- `AdminStatisticsMapper.xml`의 LEFT JOIN이 날짜 필터 시 사실상 INNER JOIN처럼 동작 — 예약 없는 진료항목이 통계에서 누락
+- ~~`AdminStatisticsMapper.xml`의 LEFT JOIN이 날짜 필터 시 사실상 INNER JOIN처럼 동작 — 예약 없는 진료항목이 통계에서 누락~~ → **2026-09-18 수정 완료**(날짜 조건을 WHERE절에서 LEFT JOIN의 ON절로 이동)
 - `SecurityConfig`에 커스텀 `AccessDeniedHandler` 부재 — 권한 부족 시 403이 아닌 401 응답 (실서버 기준)
 - ~~`/notices/**`가 permitAll GET 목록에 없어 비로그인 사용자가 공지 목록 조회 불가~~ → **Phase 11에서 수정 완료**(커밋 `c7d2a53`, 포트폴리오 데모상 비로그인 방문자도 콘텐츠를 봐야 해서 공개 게시판으로 확정)
 - 프론트 `axiosInstance.js`에 응답 인터셉터 부재 — 401 공통 처리 없음

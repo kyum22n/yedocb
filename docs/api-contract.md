@@ -47,6 +47,21 @@
 - Response: `Integer` (delete된 row 수)
 - 예외: 존재하지 않으면 404
 
+### POST `/api/user/find-id` — 아이디 찾기 (2026-09-18 추가, permitAll)
+- Request Body: `UserFindIdRequestDto { uEmail: string(필수, 이메일 형식) }`
+- 입력한 이메일로 회원이 존재하면 아이디를 해당 이메일로 발송한다(`spring.mail.*`/`MailService` 사용).
+- Response: 항상 `200 OK`(본문 없음) — **이메일 존재 여부와 무관하게 동일한 응답**을 반환해 이메일
+  등록 여부가 노출(사용자 열거 공격)되지 않도록 한다. 실제 발송 성공 여부는 서버 로그로만 확인 가능.
+- 예외: 이메일 형식 오류 시 400
+
+### POST `/api/user/find-password` — 비밀번호 찾기(임시 비밀번호 재발급) (2026-09-18 추가, permitAll)
+- Request Body: `UserFindPasswordRequestDto { uId: string(필수) }`
+- 입력한 아이디로 회원이 존재하면 임시 비밀번호를 생성해 암호화 저장하고, 등록된 이메일로 발송한다.
+- Response: 항상 `200 OK`(본문 없음) — **아이디 존재 여부와 무관하게 동일한 응답**을 반환한다.
+- 예외: `uId` 누락 시 400
+- **배포 전 확인 필요**: `MAIL_HOST`/`MAIL_USERNAME`/`MAIL_PASSWORD` 환경변수가 설정되어 있어야
+  실제 발송이 동작한다(Render 콘솔 등에서 SMTP 계정 정보 주입 필요).
+
 ---
 
 ## 2. AdminUser (`/api/admin/user`)

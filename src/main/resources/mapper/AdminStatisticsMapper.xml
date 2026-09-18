@@ -81,15 +81,12 @@
             COUNT(r.reservation_id) AS reservation_count
         FROM treatment t
         LEFT JOIN reservation r ON t.treatment_id = r.treatment_id
-        <where>
             <if test="startDate != null">
-                r.reservation_date &gt;= #{startDate}
+                AND r.reservation_date &gt;= #{startDate}
             </if>
             <if test="endDate != null">
-                <if test="startDate != null">AND</if>
-                r.reservation_date &lt;= #{endDate}
+                AND r.reservation_date &lt;= #{endDate}
             </if>
-        </where>
         GROUP BY t.treatment_id, t.treatment_name
         ORDER BY reservation_count DESC, t.treatment_id
     </select>

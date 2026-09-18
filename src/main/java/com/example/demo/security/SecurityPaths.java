@@ -25,6 +25,8 @@ public final class SecurityPaths {
         "/api/user/register",
         "/api/user/login",
         "/api/user/refresh",
+        "/api/user/find-id",
+        "/api/user/find-password",
         "/api/admin/login",
         "/api/oauth2/**"
     );

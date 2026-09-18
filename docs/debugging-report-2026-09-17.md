@@ -179,3 +179,101 @@ Testcontainers 기반 백엔드 통합테스트와 실제 서버 기동을 통�
 세션에서 완료하지 못했다**. 사용자 확인 결과 이 상태로 세션을 마무리하기로 했다 — Docker를
 복구(재설치/초기화 또는 네이티브 PostgreSQL 대체)한 뒤 위 "검증하지 못한 항목" 절의 절차를
 직접 실행해 최종 확인해야 한다.
+
+---
+
+## 2026-09-18 추가 디버깅 — 아이디/비밀번호 찾기 구현 및 실제 미작동 기능 수정
+
+### 배경
+
+사용자가 "아이디/비밀번호 찾기가 아직 실행되지 않는다"고 지적하며, 문서-코드 불일치뿐 아니라
+**실제로 동작하지 않는 기능**이 더 있는지 재점검을 요청했다. 백엔드/프론트엔드를 재조사한 결과,
+`docs/test-report.md`에 이미 기록되어 있던 미해결 버그 1건(통계 LEFT JOIN)이 여전히 재현되는
+것과, 별도로 여러 프론트엔드 화면에서 "버튼을 눌러도 실패 시 아무 반응이 없는" 실제 버그를
+새로 발견했다. 카테고리 등록 SQL 버그(과거 test-report.md 이슈 #1)는 이미 배포 후 디버깅에서
+고쳐져 있었음을 재확인했다(문서만 낡아 있었음, `docs/test-report.md`/`deployment-migration.md`에
+반영 완료).
+
+### E. [신규 기능] 아이디/비밀번호 찾기 — 이메일(SMTP) 기반 구현
+
+사용자가 SMTP 계정을 보유하고 있어 실제로 동작하도록 구현했다(기존에는 백엔드 엔드포인트
+자체가 없어 프론트가 항상 "지원되지 않습니다" alert만 띄우는 스텁이었음).
+
+**백엔드 (yedocb)**
+- `dto/request/user/UserFindIdRequestDto.java`, `UserFindPasswordRequestDto.java` 신규
+- `service/MailService.java` 신규 — `JavaMailSender` 기반 아이디 안내/임시 비밀번호 메일 발송
+- `service/UserService.java` — `findIdAndSendEmail()`, `resetPasswordAndSendEmail()` 추가.
+  **보안 설계**: 이메일/아이디가 실제로 존재하지 않아도 예외를 던지지 않고 조용히 종료 —
+  존재 여부에 따라 응답이 달라지면 이메일/아이디 열거 공격에 노출되므로, 항상 동일한 200
+  응답을 반환하도록 설계함. 임시 비밀번호는 `SecureRandom` 기반으로 영문+숫자+특수문자를
+  모두 포함하도록 생성(User 엔티티의 비밀번호 복잡도 규칙과 동일).
+- `controller/UserController.java` — `POST /api/user/find-id`, `POST /api/user/find-password`
+  추가 (둘 다 permitAll)
+- `security/SecurityPaths.java` — 위 두 경로를 `PUBLIC_PATTERNS`에 추가
+- `application.properties` — `spring.mail.*` 설정 추가. `MAIL_HOST`(기본값 `smtp.gmail.com`),
+  `MAIL_PORT`(기본값 587), `MAIL_USERNAME`/`MAIL_PASSWORD`(기본값 빈 문자열 — 기존 OAuth
+  시크릿과 동일한 패턴, 실제 값은 절대 코드/문서에 직접 쓰지 않고 환경변수로만 주입)
+- `docs/api-contract.md` — 두 엔드포인트 문서화, 배포 전 `MAIL_*` 환경변수 필요성 명시
+- 테스트: `UserServiceTest`(신규 4개, Mockito 단위테스트 — **통과 확인함**), `UserControllerTest`
+  (신규 4개, MockMvc — Testcontainers 필요해 **이번 세션에서 실행 확인 못함**)
+
+**프론트엔드 (yedocf)**
+- `src/pages/user/FindAccountPage.jsx` — `handleFindId`/`handleFindPassword`가 실제로
+  `axiosInstance.post("/api/user/find-id" | "/api/user/find-password", ...)`를 호출하도록 변경.
+  UX도 변경: 백엔드가 존재 여부를 노출하지 않으므로, 화면에도 찾은 아이디/임시비밀번호를
+  직접 표시하지 않고 "등록된 회원이 있다면 이메일로 발송했습니다" 형태의 안내만 표시
+- `src/pages/user/FindAccountPage.test.jsx` 신규 — 5개 테스트, **전부 통과**
+
+**⚠️ 배포 전 필수 확인**: Render 콘솔에 `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`
+환경변수를 설정해야 실제 메일이 발송된다(Gmail 사용 시 일반 비밀번호가 아니라 **앱 비밀번호**
+필요). 값 설정은 사용자가 Render 콘솔에서 직접 해야 하며, 이 세션에서는 절대 실제 SMTP
+자격증명을 다루지 않았다.
+
+### F. [버그 수정] 통계 LEFT JOIN — 날짜 필터 시 예약 0건 진료항목 누락
+
+- `mapper/AdminStatisticsMapper.xml`의 `selectTreatmentStatistics` — 날짜 범위 조건을
+  `<where>`(WHERE절)에서 `LEFT JOIN ... ON` 절로 이동. 이제 날짜 필터를 걸어도 예약이 0건인
+  진료항목이 `reservation_count=0`으로 계속 포함된다.
+- `mapper/AdminStatisticsMapperTest.java`의 기존 실패-재현용 테스트를
+  `날짜범위지정시에도_예약없는진료항목이_통계에_0건으로_포함된다`로 갱신(성공을 기대하도록 변경)
+- `docs/deployment-migration.md`, `docs/test-report.md` — 해당 이슈를 취소선 처리하고 수정 완료로 기록
+- **Testcontainers 필요해 이번 세션에서 테스트 실행 확인은 못함** — 컴파일은 성공 확인함
+
+### G. [버그 수정] 프론트엔드 관리자 화면 — 실패 시 무반응 문제
+
+- `src/pages/admin/ReservationManagePage.jsx` — 예약 상태변경(`handleStatusChange`), 삭제
+  (`handleDeleteReservation`) 실패 시 `alert`로 사용자에게 안내하도록 추가(기존엔 `console.error`만 함)
+- `src/pages/admin/NoticeEventManagePage.jsx` — 공지/이벤트 등록·수정·삭제
+  (`handleCreateNotice`/`handleUpdateNotice`/`handleDeleteNotice`)에 try/catch 자체가 없어 실패 시
+  완전히 조용히 실패하던 것을 다른 관리자 페이지와 동일한 try/catch + alert 패턴으로 통일
+- `src/pages/admin/UserManagePage.jsx`:
+  - 회원 추가(`onAction`)가 `document.querySelector`로 DOM을 직접 읽는 미완성 구현이었던 것을
+    `newUserForm` React state 기반 완전한 controlled input으로 전환(다른 관리자 페이지의
+    `form` state 패턴과 동일하게 통일)
+  - 회원 추가/삭제 실패 시 `alert` 안내 추가(기존엔 추가는 `console.error`만, 삭제는 그마저도 없었음)
+- 위 3개 파일 모두 **`npm run build` 성공, 기존 Vitest 22개 통과 재확인함**(신규 테스트는
+  UI 텍스트/조건 변경이 없어 별도 추가하지 않음 — 실패 처리 분기만 추가된 것이라 스냅샷성 검증
+  가치가 낮다고 판단)
+
+### 이번 라운드에서 다루지 않기로 한 항목 (사용자 확인)
+
+- `src/pages/user/LoginPage.jsx`의 소셜 로그인 환경변수 미검증 — 배포 환경변수가 정상 설정되어
+  있으면 실사용에 문제없어 이번엔 보고만 하고 수정하지 않음
+- `src/pages/user/MyPage.jsx`의 세션 만료 시 무안내 — 경미한 UX 이슈로 판단, 이번엔 제외
+- `src/pages/admin/NoticeEventEditPage.jsx` — 라우팅되지 않는 죽은 파일, 사용자 확인 결과 그대로 유지
+
+### 검증 결과 요약 (2026-09-18)
+
+| 항목 | 결과 |
+|---|---|
+| 백엔드 전체 컴파일(`compileJava`/`compileTestJava`) | **성공** |
+| 백엔드 `UserServiceTest`(신규 4개 포함) | **전부 통과** |
+| 백엔드 `AdminReservationServiceTest` | **전부 통과** (회귀 없음 재확인) |
+| 백엔드 `UserControllerTest`(신규 4개), `AdminStatisticsMapperTest` | Docker 미구동으로 **미실행** |
+| 프론트엔드 Vitest 전체(27개, 신규 `FindAccountPage` 5개 포함) | **전부 통과** |
+| 프론트엔드 빌드(`npm run build`) | **성공** |
+
+Docker가 여전히 복구되지 않아, 이번에 추가한 `UserControllerTest`의 신규 테스트 4개와
+`AdminStatisticsMapperTest`의 갱신된 테스트는 Mockito 단위테스트 수준(서비스 로직)까지만
+검증했고, 실제 Postgres/MockMvc를 통한 종단 검증은 하지 못했다. Docker 복구 후
+`./gradlew cleanTest test`로 전체 재확인이 필요하다.

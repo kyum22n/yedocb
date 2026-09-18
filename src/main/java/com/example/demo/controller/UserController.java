@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.dto.request.user.UserCreateRequestDto;
+import com.example.demo.dto.request.user.UserFindIdRequestDto;
+import com.example.demo.dto.request.user.UserFindPasswordRequestDto;
 import com.example.demo.dto.request.user.UserMypageUpdateRequestDto;
 import com.example.demo.dto.request.user.UserPasswordUpdateRequestDto;
 import com.example.demo.dto.response.user.UserMypageResponseDto;
@@ -46,6 +48,21 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<Integer> registerUser(@Valid @RequestBody UserCreateRequestDto request) {
         return ResponseEntity.ok(userService.createUser(request));
+    }
+
+    // 아이디 찾기 - 이메일로 회원을 조회해 아이디를 이메일로 발송. 존재 여부와 무관하게 항상 200
+    @PostMapping("/find-id")
+    public ResponseEntity<Void> findId(@Valid @RequestBody UserFindIdRequestDto request) {
+        userService.findIdAndSendEmail(request.getUEmail());
+        return ResponseEntity.ok().build();
+    }
+
+    // 비밀번호 찾기(재발급) - 아이디로 회원을 조회해 임시 비밀번호를 등록된 이메일로 발송.
+    // 존재 여부와 무관하게 항상 200
+    @PostMapping("/find-password")
+    public ResponseEntity<Void> findPassword(@Valid @RequestBody UserFindPasswordRequestDto request) {
+        userService.resetPasswordAndSendEmail(request.getUId());
+        return ResponseEntity.ok().build();
     }
 
     // 마이페이지 조회 (인증된 본인)

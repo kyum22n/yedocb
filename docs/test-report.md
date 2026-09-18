@@ -266,10 +266,10 @@ Docker 네트워킹이 아니라 이 리소스 한도 문제였을 가능성이 
 
 | # | 파일 | 문제 | 근거 테스트 |
 |---|---|---|---|
-| 1 | `AdminTreatmentCategoryMapper.xml`의 `insertCategory` | `INSERT INTO treatment_category (category_name, COALESCE(#{is_visible}, TRUE), created_at, updated_at) VALUES (#{categoryName}, #{isVisible}, NOW(), NOW())` — 컬럼 목록에 `COALESCE(...)` 표현식이 그대로 들어가 있고 파라미터명도 스네이크케이스(`#{is_visible}`)로 잘못됨. 실제 DB에 대해 실행하면 SQL 문법 오류. **관리자 카테고리 등록 기능이 현재 전혀 동작하지 않음** | `TreatmentCategoryMapperTest.카테고리등록_insertCategory는_SQL문법오류로_실패한다` |
-| 2 | `AdminStatisticsMapper.xml`의 `selectTreatmentStatistics` | 인기 진료항목 통계 쿼리가 `treatment LEFT JOIN reservation`인데, 날짜 범위 조건이 `<where>`(=WHERE절)에 있어 사실상 INNER JOIN처럼 동작. 날짜 필터 없이 조회하면 예약 0건인 진료항목도 나오지만, 날짜 필터를 걸면 그 항목이 통계에서 통째로 사라짐 | `AdminStatisticsMapperTest.날짜범위지정시_예약없는진료항목은_LEFT_JOIN이지만_통계에서_빠진다` |
-| 3 | `SecurityConfig` | 커스텀 `AccessDeniedHandler`가 없어, 인증은 됐지만 권한이 부족한 요청이 (실제 서버 기준) 403이 아니라 401로 응답됨. REST 관례와 다르고, 프론트가 401을 "재로그인 필요"로 처리한다면 권한부족 상황에서 불필요하게 로그아웃될 수 있음 | `RealServerJwtSmokeTest.USER권한토큰으로_admin경로에_접근하면_401이다` (트러블슈팅 #3) |
-| 4 | `SecurityConfig` / `SecurityPaths` | `/notices/**`가 `PUBLIC_GET_PATTERNS`에 없어, 비로그인 사용자는 공지/이벤트 목록을 볼 수 없음(`anyRequest().authenticated()` 규칙 적용). 공지가 로그인 전용으로 설계된 것인지, 아니면 `/treatments`나 `/reviews`처럼 공개되어야 하는데 누락된 것인지 확인 필요 | `NoticeControllerTest.인증없이_공지목록조회하면_401` |
+| 1 | ~~`AdminTreatmentCategoryMapper.xml`의 `insertCategory`~~ | ~~컬럼 목록에 `COALESCE(...)` 표현식이 들어가 있고 파라미터명도 스네이크케이스로 잘못됨~~ → **Phase 11에서 수정 완료**(커밋 `61118f7`, `docs/deployment-migration.md` 참고) | `TreatmentCategoryMapperTest.카테고리등록_insertCategory가_정상적으로_생성된다` (성공 검증으로 갱신됨) |
+| 2 | ~~`AdminStatisticsMapper.xml`의 `selectTreatmentStatistics`~~ | ~~날짜 범위 조건이 `<where>`(WHERE절)에 있어 LEFT JOIN이 사실상 INNER JOIN처럼 동작, 예약 0건인 진료항목이 날짜 필터 시 통계에서 누락~~ → **2026-09-18 수정 완료**(날짜 조건을 LEFT JOIN의 ON절로 이동) | `AdminStatisticsMapperTest.날짜범위지정시에도_예약없는진료항목이_통계에_0건으로_포함된다` (성공 검증으로 갱신됨) |
+| 3 | `SecurityConfig` | 커스텀 `AccessDeniedHandler`가 없어, 인증은 됐지만 권한이 부족한 요청이 (실제 서버 기준) 403이 아니라 401로 응답됨. REST 관례와 다르고, 프론트가 401을 "재로그인 필요"로 처리한다면 권한부족 상황에서 불필요하게 로그아웃될 수 있음 — **아직 미수정** | `RealServerJwtSmokeTest.USER권한토큰으로_admin경로에_접근하면_401이다` (트러블슈팅 #3) |
+| 4 | ~~`SecurityConfig` / `SecurityPaths`~~ | ~~`/notices/**`가 `PUBLIC_GET_PATTERNS`에 없어 비로그인 사용자가 공지 목록 조회 불가~~ → **Phase 11에서 수정 완료**(커밋 `c7d2a53`) | `NoticeControllerTest` (permitAll 반영됨) |
 | 5 | (프론트) `src/api/axiosInstance.js` | 요청 인터셉터(토큰 첨부)만 있고 **응답 인터셉터가 전혀 없음** — 401 응답을 공통으로 처리(자동 로그아웃/재로그인 유도 등)하는 로직이 없어, 세션 만료 시 각 페이지가 개별적으로 catch해서 처리해야 함 | `axiosInstance.test.js.응답 인터셉터가 등록되어 있지 않다` |
 | 6 | `OAuthController` | 메소드 내부에서 매번 `new RestTemplate()`을 생성해 외부 API(Google/Kakao)를 직접 호출하는 구조라 단위/슬라이스 테스트로 목(mock) 처리할 주입 지점이 없음. 실제 네트워크 호출 없이는 이 컨트롤러의 성공 경로를 테스트할 수 없음(테스트 가능성 측면의 설계 이슈, 버그는 아님) | 해당 없음(코드 리뷰로만 확인, `SecurityPathsTest`로 경로 화이트리스트만 대체 검증) |
 

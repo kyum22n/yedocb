@@ -105,10 +105,11 @@ class AdminStatisticsMapperTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void 날짜범위지정시_예약없는진료항목은_LEFT_JOIN이지만_통계에서_빠진다() {
-        // 발견된 이슈: WHERE절의 r.reservation_date 조건이 LEFT JOIN을 사실상 INNER
-        // JOIN으로 만든다. 날짜 필터 없이 조회하면(reservation_count=0으로) 나와야 할
-        // "예약이 아예 없는 진료항목"이, 날짜 필터를 걸면 결과에서 완전히 사라진다.
+    void 날짜범위지정시에도_예약없는진료항목이_통계에_0건으로_포함된다() {
+        // 2026-09-18 수정: 날짜 범위 조건을 WHERE절에서 LEFT JOIN의 ON절로 옮겨,
+        // 예약이 아예 없는 진료항목도 날짜 필터 유무와 무관하게 reservation_count=0으로
+        // 항상 포함되도록 고쳤다(이전에는 날짜 필터를 걸면 LEFT JOIN이 사실상 INNER JOIN처럼
+        // 동작해 결과에서 완전히 사라지는 버그가 있었다).
         Treatment treatment = new Treatment();
         treatment.setTreatmentName("예약없는신규시술");
         treatment.setIsReservable(true);
@@ -125,6 +126,9 @@ class AdminStatisticsMapperTest extends AbstractIntegrationTest {
         withFilter.setEndDate(LocalDate.of(2026, 12, 31));
         List<TreatmentStatisticsResponseDto> withDateFilter = statisticsDao.selectTreatmentStatistics(withFilter);
         assertThat(withDateFilter).extracting(TreatmentStatisticsResponseDto::getTreatmentId)
-                .doesNotContain(treatment.getTreatmentId());
+                .contains(treatment.getTreatmentId());
+        assertThat(withDateFilter).filteredOn(dto -> dto.getTreatmentId().equals(treatment.getTreatmentId()))
+                .extracting(TreatmentStatisticsResponseDto::getReservationCount)
+                .containsExactly(0);
     }
 }

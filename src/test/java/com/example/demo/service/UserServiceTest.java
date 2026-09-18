@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +44,9 @@ class UserServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private MailService mailService;
 
     @InjectMocks
     private UserService userService;
@@ -180,5 +185,52 @@ class UserServiceTest {
 
         assertThat(result).isEqualTo(1);
         verify(userDao).updatePassword("testuser", "encoded-new-pwd");
+    }
+
+    @Test
+    void 아이디찾기_존재하는이메일이면_해당이메일로_아이디를_발송한다() {
+        User user = new User();
+        user.setUId("testuser");
+        user.setUName("홍길동");
+        user.setUEmail("test@example.com");
+        when(userDao.selectUserByEmail("test@example.com")).thenReturn(user);
+
+        userService.findIdAndSendEmail("test@example.com");
+
+        verify(mailService).sendFindIdEmail("test@example.com", "홍길동", "testuser");
+    }
+
+    @Test
+    void 아이디찾기_존재하지않는이메일이면_메일을_보내지않고_예외도_없다() {
+        when(userDao.selectUserByEmail("nouser@example.com")).thenReturn(null);
+
+        userService.findIdAndSendEmail("nouser@example.com");
+
+        verify(mailService, never()).sendFindIdEmail(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void 비밀번호찾기_존재하는아이디면_임시비밀번호를_저장하고_이메일로_발송한다() {
+        User user = new User();
+        user.setUId("testuser");
+        user.setUName("홍길동");
+        user.setUEmail("test@example.com");
+        when(userDao.selectUserById("testuser")).thenReturn(user);
+        when(passwordEncoder.encode(anyString())).thenReturn("encoded-temp-pwd");
+
+        userService.resetPasswordAndSendEmail("testuser");
+
+        verify(userDao).updatePassword(eq("testuser"), eq("encoded-temp-pwd"));
+        verify(mailService).sendTempPasswordEmail(eq("test@example.com"), eq("홍길동"), anyString());
+    }
+
+    @Test
+    void 비밀번호찾기_존재하지않는아이디면_아무일도_하지않는다() {
+        when(userDao.selectUserById("nouser")).thenReturn(null);
+
+        userService.resetPasswordAndSendEmail("nouser");
+
+        verify(userDao, never()).updatePassword(anyString(), anyString());
+        verify(mailService, never()).sendTempPasswordEmail(anyString(), anyString(), anyString());
     }
 }

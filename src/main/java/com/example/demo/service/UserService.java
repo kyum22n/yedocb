@@ -1,5 +1,10 @@
 package com.example.demo.service;
 
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,6 +38,13 @@ public class UserService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private MailService mailService;
+
+    private static final String TEMP_PASSWORD_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    private static final String TEMP_PASSWORD_DIGITS = "23456789";
+    private static final String TEMP_PASSWORD_SPECIALS = "!@#$%*?&";
 
     // 회원가입
     public int createUser(UserCreateRequestDto request) {
@@ -112,5 +124,52 @@ public class UserService {
         }
 
         return userDao.deleteUser(uId);
+    }
+
+    // 아이디 찾기 - 입력한 이메일로 회원이 존재하면 아이디를 이메일로 발송한다.
+    // 이메일 존재 여부를 응답으로 노출하지 않기 위해 회원이 없어도 예외를 던지지 않고 조용히 종료한다.
+    public void findIdAndSendEmail(String uEmail) {
+
+        User user = userDao.selectUserByEmail(uEmail);
+
+        if (user != null) {
+            mailService.sendFindIdEmail(user.getUEmail(), user.getUName(), user.getUId());
+        }
+    }
+
+    // 비밀번호 찾기(재발급) - 입력한 아이디로 회원이 존재하면 임시 비밀번호를 생성해 저장하고
+    // 등록된 이메일로 발송한다. 아이디 존재 여부를 응답으로 노출하지 않기 위해 회원이 없어도
+    // 예외를 던지지 않고 조용히 종료한다.
+    public void resetPasswordAndSendEmail(String uId) {
+
+        User user = userDao.selectUserById(uId);
+
+        if (user != null) {
+            String tempPassword = generateTempPassword();
+            userDao.updatePassword(uId, passwordEncoder.encode(tempPassword));
+            mailService.sendTempPasswordEmail(user.getUEmail(), user.getUName(), tempPassword);
+        }
+    }
+
+    // 영문/숫자/특수문자를 모두 포함하는 10자리 임시 비밀번호 생성 (User 엔티티의 비밀번호 복잡도 규칙 충족)
+    private String generateTempPassword() {
+
+        SecureRandom random = new SecureRandom();
+        List<Character> chars = new ArrayList<>();
+
+        chars.add(TEMP_PASSWORD_LETTERS.charAt(random.nextInt(TEMP_PASSWORD_LETTERS.length())));
+        chars.add(TEMP_PASSWORD_DIGITS.charAt(random.nextInt(TEMP_PASSWORD_DIGITS.length())));
+        chars.add(TEMP_PASSWORD_SPECIALS.charAt(random.nextInt(TEMP_PASSWORD_SPECIALS.length())));
+
+        String all = TEMP_PASSWORD_LETTERS + TEMP_PASSWORD_DIGITS + TEMP_PASSWORD_SPECIALS;
+        for (int i = 0; i < 7; i++) {
+            chars.add(all.charAt(random.nextInt(all.length())));
+        }
+
+        Collections.shuffle(chars, random);
+
+        StringBuilder result = new StringBuilder();
+        chars.forEach(result::append);
+        return result.toString();
     }
 }
