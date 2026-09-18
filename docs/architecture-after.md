@@ -33,6 +33,7 @@ Mapper XML (resources/mapper/*.xml)   — 실제 SQL (PostgreSQL)
   3. 상태값 화이트리스트 검증 등 서비스 레벨의 순수 입력 검증 — `IllegalArgumentException`을 던지며, `GlobalExceptionHandler`가 이를 400으로 매핑한다(전용 커스텀 예외는 아니므로 필드별 `fieldErrors` 없이 단일 메시지로 응답).
 - **예외 처리는 `@RestControllerAdvice` 하나로 집중한다.** `GlobalExceptionHandler`가 모든 예외를 가로채 `ErrorResponse`(status/message/timestamp/fieldErrors) 형태로 응답한다. 정상 응답에는 공용 래퍼(`ApiResponse<T>` 같은)를 쓰지 않는다 — 컨트롤러는 `ResponseEntity<ExactDtoType>`을 그대로 반환한다.
 - **인증은 JWT 기반 Stateless.** `SecurityConfig` + `JwtAuthenticationFilter` + `JwtTokenProvider`. permitAll 대상 경로는 `security/SecurityPaths`(전체 permitAll `PUBLIC_PATTERNS`, GET 전용 permitAll `PUBLIC_GET_PATTERNS`) 한 곳에서만 관리한다.
+- **관리자 등록/삭제는 SUPERADMIN 전용.** URL 패턴 단위 규칙(`hasAnyRole("ADMIN","SUPERADMIN")`)은 ADMIN/SUPERADMIN을 동등하게 취급하지만, `AdminController.registerAdmin()`/`deleteAdmin()`만 `@EnableMethodSecurity` + `@PreAuthorize("hasRole('SUPERADMIN')")`로 더 세밀하게 제한한다(2026-09-17 수정 — 이전에는 이 제한이 프론트엔드 메뉴 숨김에만 있고 백엔드에는 없었다).
 - **DB 스키마는 `schema.sql`에 `CREATE TABLE IF NOT EXISTS`로만 정의한다** (DROP 없음, additive). PostgreSQL 문법.
 
 ---

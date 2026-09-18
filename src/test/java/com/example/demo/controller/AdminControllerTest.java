@@ -53,6 +53,10 @@ class AdminControllerTest extends AbstractIntegrationTest {
         return "Bearer " + jwtTokenProvider.createToken("admin01", List.of("ADMIN"));
     }
 
+    private String superAdminToken() {
+        return "Bearer " + jwtTokenProvider.createToken("super01", List.of("SUPERADMIN"));
+    }
+
     @Test
     void 인증없이_관리자목록조회하면_401() throws Exception {
         mockMvc.perform(get("/admin/list"))
@@ -81,14 +85,14 @@ class AdminControllerTest extends AbstractIntegrationTest {
         request.setAdminEmail("invalid-email");
 
         mockMvc.perform(post("/admin/register")
-                        .header("Authorization", adminToken())
+                        .header("Authorization", superAdminToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void 관리자등록_성공하면_200() throws Exception {
+    void SUPERADMIN권한으로_관리자등록하면_성공하면_200() throws Exception {
         AdminCreateRequestDto request = new AdminCreateRequestDto();
         request.setAdminLoginId("newadmin");
         request.setAdminPassword("pw12345!");
@@ -98,7 +102,7 @@ class AdminControllerTest extends AbstractIntegrationTest {
         when(adminService.createAdmin(any())).thenReturn(1);
 
         mockMvc.perform(post("/admin/register")
-                        .header("Authorization", adminToken())
+                        .header("Authorization", superAdminToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -106,11 +110,32 @@ class AdminControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void 관리자삭제_성공하면_200() throws Exception {
+    void SUPERADMIN권한으로_관리자삭제하면_성공하면_200() throws Exception {
         when(adminService.removeAdmin(3)).thenReturn(1);
 
-        mockMvc.perform(delete("/admin/delete/3").header("Authorization", adminToken()))
+        mockMvc.perform(delete("/admin/delete/3").header("Authorization", superAdminToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").value(1));
+    }
+
+    @Test
+    void ADMIN권한으로_관리자등록시도하면_403() throws Exception {
+        AdminCreateRequestDto request = new AdminCreateRequestDto();
+        request.setAdminLoginId("newadmin");
+        request.setAdminPassword("pw12345!");
+        request.setAdminName("새관리자");
+        request.setAdminEmail("new@example.com");
+
+        mockMvc.perform(post("/admin/register")
+                        .header("Authorization", adminToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void ADMIN권한으로_관리자삭제시도하면_403() throws Exception {
+        mockMvc.perform(delete("/admin/delete/3").header("Authorization", adminToken()))
+                .andExpect(status().isForbidden());
     }
 }

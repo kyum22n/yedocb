@@ -4,6 +4,8 @@ import com.example.demo.exception.ResourceNotFoundException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,16 @@ public class AdminReservationService {
 
     @Autowired
     private AdminReservationDao adminReservationDao;
+
+    // 예약 상태 전이 규칙 - 대기(PENDING) -> 승인(CONFIRMED) -> 완료(COMPLETED)/취소(CANCELED)/노쇼(NO_SHOW)
+    // COMPLETED/CANCELED/NO_SHOW는 종결 상태로 추가 전이가 불가능하다.
+    private static final Map<String, Set<String>> ALLOWED_RESERVATION_STATUS_TRANSITIONS = Map.of(
+            "PENDING", Set.of("CONFIRMED", "CANCELED"),
+            "CONFIRMED", Set.of("COMPLETED", "CANCELED", "NO_SHOW"),
+            "COMPLETED", Set.of(),
+            "CANCELED", Set.of(),
+            "NO_SHOW", Set.of()
+    );
 
     // 예약 등록 (생성된 예약의 PK를 반환 - insert row count 아님. 상담->예약 전환 시
     // 이 ID를 AdminConsultationConvertRequestDto.reservationId에 사용한다)
@@ -363,6 +375,14 @@ public class AdminReservationService {
 
         if(existingReservation == null) {
             throw new ResourceNotFoundException("존재하지 않는 예약입니다.");
+        }
+
+        String currentStatus = existingReservation.getReservationStatus();
+        String nextStatus = request.getReservationStatus();
+
+        if(!ALLOWED_RESERVATION_STATUS_TRANSITIONS.getOrDefault(currentStatus, Set.of()).contains(nextStatus)) {
+            throw new IllegalArgumentException(
+                    "잘못된 상태 전이입니다 (현재: " + currentStatus + ", 요청: " + nextStatus + ")");
         }
 
         Reservation reservation = new Reservation();

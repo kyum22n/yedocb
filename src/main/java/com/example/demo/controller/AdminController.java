@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -52,7 +53,8 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getAdminById(adminId));
     }
 
-    // 관리자 등록
+    // 관리자 등록 - 최고 관리자(SUPERADMIN)만 가능
+    @PreAuthorize("hasRole('SUPERADMIN')")
     @PostMapping("/register")
     public ResponseEntity<Integer> registerAdmin(@Valid @RequestBody AdminCreateRequestDto request) {
         return ResponseEntity.ok(adminService.createAdmin(request));
@@ -64,7 +66,8 @@ public class AdminController {
         return ResponseEntity.ok(adminService.modifyAdmin(admin));
     }
 
-    // 관리자 삭제
+    // 관리자 삭제 - 최고 관리자(SUPERADMIN)만 가능
+    @PreAuthorize("hasRole('SUPERADMIN')")
     @DeleteMapping("/delete/{adminId}")
     public ResponseEntity<Integer> deleteAdmin(@PathVariable("adminId") Integer adminId) {
         return ResponseEntity.ok(adminService.removeAdmin(adminId));

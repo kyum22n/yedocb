@@ -117,6 +117,12 @@
 | PUT | `/admin/reservations/pms-status/update` | `AdminPmsSyncStatusUpdateRequestDto` (`reservationId, pmsSyncStatus`) | `Integer` |
 | DELETE | `/admin/reservations/delete/{reservationId}` | - | `Integer` |
 
+**예약 상태 전이 규칙** (`/admin/reservations/status/update`, 2026-09-17 추가): 현재 상태에서 허용되지
+않는 상태로 전이를 요청하면 400(`IllegalArgumentException`)이 반환된다.
+- `PENDING` → `CONFIRMED`, `CANCELED`
+- `CONFIRMED` → `COMPLETED`, `CANCELED`, `NO_SHOW`
+- `COMPLETED`, `CANCELED`, `NO_SHOW` → 종결 상태(추가 전이 불가)
+
 `AdminReservationResponseDto` 필드: `reservationId, uId, treatmentId, adminId, reservationDate, reservationTime, reservationStatus, memberMemo, adminMemo, pmsSyncStatus, createdAt, updatedAt`
 
 ---
@@ -127,13 +133,21 @@
 |---|---|---|---|
 | GET | `/admin/list` | - | `AdminListResponseDto[]` (`adminId, adminLoginId, adminName, adminEmail, adminPhone, adminRole` — `adminPassword` 미포함) |
 | GET | `/admin/detail?adminId=` | `adminId: number` | `AdminDetailResponseDto` (`adminId, adminLoginId, adminName, adminEmail, adminPhone, adminRole, createdBy, createdAt(LocalDateTime), updatedAt(LocalDateTime)`) |
-| POST | `/admin/register` | `AdminCreateRequestDto` (`adminLoginId`(필수), `adminPassword`(필수), `adminName`(필수), `adminEmail`(필수, 이메일 형식), `adminPhone`, `adminRole`(미지정 시 `"ADMIN"`으로 기본 설정)) | `Integer` |
+| POST | `/admin/register` | `AdminCreateRequestDto` (`adminLoginId`(필수), `adminPassword`(필수), `adminName`(필수), `adminEmail`(필수, 이메일 형식), `adminPhone`, `adminRole`(미지정 시 `"ADMIN"`으로 기본 설정)) — **SUPERADMIN 전용** | `Integer` |
 | PUT | `/admin/update` | `AdminUpdateRequestDto` (`adminId`(필수), `adminName`(필수), `adminEmail`(필수, 이메일 형식), `adminPhone`) | `Integer` |
-| DELETE | `/admin/delete/{adminId}` | - | `Integer` |
+| DELETE | `/admin/delete/{adminId}` | - — **SUPERADMIN 전용** | `Integer` |
 
 예외: 존재하지 않는 관리자 조회/수정/삭제 시 404, 로그인 ID 중복 등록 시 409, 필수값 누락/형식 오류 시 400.
+`/admin/register`, `/admin/delete/{adminId}`는 `@PreAuthorize("hasRole('SUPERADMIN')")`로 보호되어
+일반 ADMIN 토큰으로 호출하면 403이 반환된다(2026-09-17 수정 — 이전에는 `/admin/**` URL 패턴 규칙만
+있어 ADMIN도 관리자 등록/삭제가 가능했던 버그가 있었음). `/admin/list`, `/admin/detail`, `/admin/update`는
+기존처럼 ADMIN/SUPERADMIN 모두 접근 가능하다.
 
-**참고**: `/admin/register`도 이제 `/admin/**`로 보호되므로 ADMIN/SUPERADMIN 토큰 없이는 신규 관리자를 등록할 수 없다 — 최초 SUPERADMIN 계정은 DB에 직접 시드하거나 별도의 부트스트랩 절차가 필요하다(현재 코드에는 부트스트랩 메커니즘이 없음 — Deploy 단계에서 결정 필요).
+**참고**: `/admin/register`도 `/admin/**`(+ 이제 SUPERADMIN 전용 메서드 보안까지)로 보호되므로
+SUPERADMIN 토큰 없이는 신규 관리자를 등록할 수 없다 — **운영 DB(Neon)에 `adminRole='SUPERADMIN'`
+계정이 최소 1개는 미리 존재해야 하며, 없다면 배포 전 기존 관리자 중 한 명을 DB에서 직접
+`SUPERADMIN`으로 승격시켜야 한다.** 최초 SUPERADMIN 계정을 위한 별도의 자동 부트스트랩
+메커니즘(예: 앱 시작 시 시드)은 현재 코드에 없다 — Deploy 단계에서 수동으로 결정/확인 필요.
 
 ---
 
@@ -235,7 +249,7 @@
 
 1. **User 도메인만 `/api/...` 접두사**를 쓰고, 나머지 Phase 1 도메인(Reservation/Notice/Inquiry/Admin)은 기존 경로(`/reservations`, `/notices`, `/inquiries`, `/admin/...`)를 그대로 유지한다. 경로 컨벤션 통일은 하지 않기로 확정.
 2. Reservation/Inquiry의 `memberId`(number)는 전부 `uId`(string)로 변경되었다 — 기존에 프론트가 숫자 회원 ID를 넘기고 있었다면 로그인 ID(문자열)로 바꿔야 한다.
-3. `/api/user/**`, `/api/admin/**`, 접두사 없는 `/admin/**`(예: `/admin/reservations`, `/admin/staff-schedules`)는 모두 SecurityConfig에 의해 ADMIN/SUPERADMIN(또는 USER 이상) 권한이 필요하다 (`register`/`login`/`refresh`/`admin/login`/`oauth2/**` 및 `GET /treatments/**`, `GET /treatment-categories/**`, `GET /reviews/**`, `GET /reservations/disabled-times`는 예외). 리팩토링 이전에는 인증 자체가 없었으므로, 프론트에서 이 경로들을 호출할 때 `Authorization` 헤더를 붙여야 한다.
+3. `/api/user/**`, `/api/admin/**`, 접두사 없는 `/admin/**`(예: `/admin/reservations`, `/admin/consultations`)는 모두 SecurityConfig에 의해 ADMIN/SUPERADMIN(또는 USER 이상) 권한이 필요하다 (`register`/`login`/`refresh`/`admin/login`/`oauth2/**` 및 `GET /treatments/**`, `GET /treatment-categories/**`, `GET /reviews/**`, `GET /reservations/disabled-times`는 예외). 리팩토링 이전에는 인증 자체가 없었으므로, 프론트에서 이 경로들을 호출할 때 `Authorization` 헤더를 붙여야 한다.
 4. Google/Kakao OAuth 클라이언트 ID/Secret은 로컬 `application.properties`에서 빈 값(`${GOOGLE_CLIENT_ID:}` 등)으로 기본 설정되어 있다 — 로컬에서 소셜 로그인을 테스트하려면 환경변수로 실제 값을 주입해야 한다.
 
 ### 해결된 이슈 (참고용 — 이전 버전 문서를 봤다면 최신 상태로 갱신됨)

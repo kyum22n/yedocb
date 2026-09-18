@@ -111,6 +111,8 @@ class AdminStatisticsMapperTest extends AbstractIntegrationTest {
         // "예약이 아예 없는 진료항목"이, 날짜 필터를 걸면 결과에서 완전히 사라진다.
         Treatment treatment = new Treatment();
         treatment.setTreatmentName("예약없는신규시술");
+        treatment.setIsReservable(true);
+        treatment.setIsVisible(true);
         adminTreatmentDao.insertTreatment(treatment);
 
         StatisticsSearchRequestDto noFilter = new StatisticsSearchRequestDto();
